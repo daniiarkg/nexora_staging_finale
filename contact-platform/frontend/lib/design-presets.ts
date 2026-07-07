@@ -8,6 +8,8 @@ export const defaultDesign: DesignConfig = {
   text_color: "#030609",
   logo_url: "",
   logo_min_width: 250,
+  top_image_url: "",
+  bottom_image_url: "",
   gradient_from: "#edffef",
   gradient_to: "#0a844a",
   gradient_angle: 135,

@@ -44,6 +44,8 @@ type DesignConfig struct {
 	TextColor        string `json:"text_color"`
 	LogoURL          string `json:"logo_url"`
 	LogoMinWidth     int    `json:"logo_min_width"`
+	TopImageURL      string `json:"top_image_url"`
+	BottomImageURL   string `json:"bottom_image_url"`
 	GradientFrom     string `json:"gradient_from"`
 	GradientTo       string `json:"gradient_to"`
 	GradientAngle    int    `json:"gradient_angle"`
@@ -110,6 +112,8 @@ type Design struct {
 	TextColor        string    `json:"text_color"`
 	LogoURL          string    `json:"logo_url"`
 	LogoMinWidth     int       `json:"logo_min_width"`
+	TopImageURL      string    `json:"top_image_url"`
+	BottomImageURL   string    `json:"bottom_image_url"`
 	GradientFrom     string    `json:"gradient_from"`
 	GradientTo       string    `json:"gradient_to"`
 	GradientAngle    int       `json:"gradient_angle"`

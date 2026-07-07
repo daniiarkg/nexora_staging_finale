@@ -602,6 +602,8 @@ func normalizeDesign(design models.DesignConfig) models.DesignConfig {
 	if design.LogoMinWidth <= 0 {
 		design.LogoMinWidth = 250
 	}
+	design.TopImageURL = strings.TrimSpace(design.TopImageURL)
+	design.BottomImageURL = strings.TrimSpace(design.BottomImageURL)
 	design.GradientFrom = defaultString(design.GradientFrom, design.BackgroundValue)
 	design.GradientTo = defaultString(design.GradientTo, design.ButtonColor)
 	if design.GradientAngle <= 0 {

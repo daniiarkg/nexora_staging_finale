@@ -554,10 +554,25 @@ legend {
   to { background-position: 100% 50%; }
 }
 
+.preview-card-stack {
+  width: min(100%, 500px);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.preview-edge-image {
+  width: calc(100% - 10px);
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
 .preview-card {
   position: relative;
   overflow: hidden;
-  width: min(100%, 500px);
+  width: 100%;
   border: 1px solid rgba(20, 22, 20, .1);
   border-radius: 8px;
   padding: 26px;
@@ -713,6 +728,32 @@ legend {
 .preview-actions b {
   overflow-wrap: anywhere;
   font-weight: var(--card-font-weight, 700);
+}
+
+.preview-vcf-button {
+  position: relative;
+  min-height: 48px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 0 16px;
+  background: var(--button-color);
+  color: #fff;
+  font-weight: var(--card-font-weight, 800);
+  pointer-events: auto;
+}
+
+.download-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .vcf-line {

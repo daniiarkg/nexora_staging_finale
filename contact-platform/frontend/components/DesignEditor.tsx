@@ -19,6 +19,8 @@ const blank: Design = {
   ...defaultDesign
 };
 
+type DesignImageKey = "logo_url" | "top_image_url" | "bottom_image_url";
+
 function colorValue(value: string | undefined, fallback: string) {
   return /^#[0-9a-f]{6}$/i.test(value || "") ? value || fallback : fallback;
 }
@@ -40,14 +42,14 @@ export function DesignEditor({ initial }: { initial?: Design }) {
     setDesign((current) => ({ ...current, ...next }));
   }
 
-  async function uploadDesignLogo(event: ChangeEvent<HTMLInputElement>) {
+  async function uploadDesignImage(event: ChangeEvent<HTMLInputElement>, key: DesignImageKey) {
     const file = event.target.files?.[0];
     if (!file) return;
     setSaving(true);
     setError("");
     try {
-      const url = await uploadFile(file, "logo");
-      patch({ logo_url: url });
+      const url = await uploadFile(file, key === "logo_url" ? "logo" : "photo");
+      patch({ [key]: url } as Partial<Design>);
     } catch (err) {
       setError(err instanceof Error ? err.message : "upload_failed");
     } finally {
@@ -129,12 +131,27 @@ export function DesignEditor({ initial }: { initial?: Design }) {
           <div className="media-logo-preview">
             {design.logo_url ? <img src={design.logo_url} alt="Лого дизайна" /> : <span className="field-note">Лого дизайна не задано</span>}
           </div>
-          <label><span>Лого дизайна</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={uploadDesignLogo} /></label>
+          <label><span>Лого дизайна</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={(event) => uploadDesignImage(event, "logo_url")} /></label>
           <label><span>Мин. ширина лого дизайна, px</span><input type="number" min="120" max="420" value={design.logo_min_width || 250} onChange={(e) => patch({ logo_min_width: Number(e.target.value) })} /></label>
           <div className="toolbar-actions">
             <button type="button" className="secondary" onClick={() => patch({ logo_url: "" })} disabled={saving || !design.logo_url}>Сбросить лого дизайна</button>
           </div>
           <p className="field-note">Лого дизайна используется только если в профиле карточки не загружено свое лого.</p>
+          <div className="media-logo-preview">
+            {design.top_image_url ? <img src={design.top_image_url} alt="Верхняя картинка" /> : <span className="field-note">Верхняя картинка не задана</span>}
+          </div>
+          <label><span>Картинка сверху карточки</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadDesignImage(event, "top_image_url")} /></label>
+          <div className="toolbar-actions">
+            <button type="button" className="secondary" onClick={() => patch({ top_image_url: "" })} disabled={saving || !design.top_image_url}>Сбросить верхнюю картинку</button>
+          </div>
+          <div className="media-logo-preview">
+            {design.bottom_image_url ? <img src={design.bottom_image_url} alt="Нижняя картинка" /> : <span className="field-note">Нижняя картинка не задана</span>}
+          </div>
+          <label><span>Картинка снизу карточки</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => uploadDesignImage(event, "bottom_image_url")} /></label>
+          <div className="toolbar-actions">
+            <button type="button" className="secondary" onClick={() => patch({ bottom_image_url: "" })} disabled={saving || !design.bottom_image_url}>Сбросить нижнюю картинку</button>
+          </div>
+          <p className="field-note">Картинки будут шириной карточки минус 10px и всегда по центру.</p>
           <label className="checkbox"><input type="checkbox" checked={design.watermark} onChange={(e) => patch({ watermark: e.target.checked })} /> Подложка из отображаемого лого</label>
         </fieldset>
 

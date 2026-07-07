@@ -29,6 +29,8 @@ export type DesignConfig = {
   text_color: string;
   logo_url: string;
   logo_min_width: number;
+  top_image_url: string;
+  bottom_image_url: string;
   gradient_from: string;
   gradient_to: string;
   gradient_angle: number;
