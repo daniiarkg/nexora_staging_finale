@@ -105,6 +105,52 @@ function TextField({
   );
 }
 
+function AssetField({
+  label,
+  value,
+  onChange,
+  uploadFile,
+  note = "SVG, PNG, JPG, WEBP, GIF или ICO до 3 MB."
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  uploadFile: (file: File) => Promise<string>;
+  note?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  async function upload(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+
+    setUploading(true);
+    try {
+      const url = await uploadFile(selected);
+      onChange(url);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  return (
+    <div className="cms-asset-field">
+      <div className="cms-asset-preview">
+        {value ? <img src={value} alt="" /> : <span>Нет файла</span>}
+      </div>
+      <div className="cms-asset-body">
+        <label className="upload-control">
+          <span>{label}</span>
+          <input type="file" accept=".svg,.png,.jpg,.jpeg,.webp,.gif,.ico,image/svg+xml,image/png,image/jpeg,image/webp,image/gif,image/x-icon" onChange={upload} disabled={uploading} />
+          <small>{uploading ? "Загружаем..." : note}</small>
+        </label>
+        {value ? <code className="asset-url">{value}</code> : null}
+      </div>
+    </div>
+  );
+}
+
 function Panel({ title, eyebrow, children }: { title: string; eyebrow?: string; children: React.ReactNode }) {
   return (
     <section className="cms-panel">
@@ -368,6 +414,36 @@ export function AdminClient() {
     setStatus("Favicon загружена.");
   }
 
+  async function uploadAsset(file: File) {
+    if (file.size > 3 * 1024 * 1024) {
+      setStatus("Файл слишком большой. Максимум 3 MB.");
+      throw new Error("file_too_large");
+    }
+
+    const formData = new FormData();
+    formData.set("file", file);
+    setStatus("Загружаем файл...");
+
+    const response = await fetch("/cms-api/assets/upload", {
+      method: "POST",
+      body: formData
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new Error("unauthorized");
+    }
+
+    if (!response.ok || !result.url) {
+      setStatus(result.error === "unsupported_type" ? "Поддерживаются только изображения: SVG, PNG, JPG, WEBP, GIF, ICO." : "Не удалось загрузить файл.");
+      throw new Error(result.error || "upload_failed");
+    }
+
+    setStatus("Файл загружен, не забудьте сохранить изменения.");
+    return result.url as string;
+  }
+
   useEffect(() => {
     load().catch((error) => {
       if (error.message === "unauthorized") {
@@ -422,10 +498,10 @@ export function AdminClient() {
               <TextField label="Web3Forms access key" value={payload.content.settings.web3formsAccessKey} onChange={(web3formsAccessKey) => updateSettings((settings) => { settings.web3formsAccessKey = web3formsAccessKey; })} />
             </div>
             <div className="cms-field-grid two">
-              <TextField label="Лого navbar" value={payload.content.settings.brandLogo} onChange={(brandLogo) => updateSettings((settings) => { settings.brandLogo = brandLogo; })} />
-              <TextField label="Лого navbar темное" value={payload.content.settings.brandLogoDark} onChange={(brandLogoDark) => updateSettings((settings) => { settings.brandLogoDark = brandLogoDark; })} />
-              <TextField label="Лого футера" value={payload.content.settings.footerLogo} onChange={(footerLogo) => updateSettings((settings) => { settings.footerLogo = footerLogo; })} />
-              <TextField label="Лого футера темное" value={payload.content.settings.footerLogoDark} onChange={(footerLogoDark) => updateSettings((settings) => { settings.footerLogoDark = footerLogoDark; })} />
+              <AssetField label="Лого navbar" value={payload.content.settings.brandLogo} uploadFile={uploadAsset} onChange={(brandLogo) => updateSettings((settings) => { settings.brandLogo = brandLogo; })} />
+              <AssetField label="Лого navbar темное" value={payload.content.settings.brandLogoDark} uploadFile={uploadAsset} onChange={(brandLogoDark) => updateSettings((settings) => { settings.brandLogoDark = brandLogoDark; })} />
+              <AssetField label="Лого футера" value={payload.content.settings.footerLogo} uploadFile={uploadAsset} onChange={(footerLogo) => updateSettings((settings) => { settings.footerLogo = footerLogo; })} />
+              <AssetField label="Лого футера темное" value={payload.content.settings.footerLogoDark} uploadFile={uploadAsset} onChange={(footerLogoDark) => updateSettings((settings) => { settings.footerLogoDark = footerLogoDark; })} />
             </div>
 
             <div className="cms-mini-card">
@@ -529,7 +605,7 @@ export function AdminClient() {
             </div>
             <div className="cms-field-grid two">
               <TextField label="Название" value={selectedCourse.title} onChange={(title) => updateCourse((course) => { course.title = title; })} />
-              <TextField label="Картинка курса" value={selectedCourse.image} onChange={(image) => updateCourse((course) => { course.image = image; })} />
+              <AssetField label="Картинка курса" value={selectedCourse.image} uploadFile={uploadAsset} onChange={(image) => updateCourse((course) => { course.image = image; })} />
             </div>
             <TextField label="Описание в карточке" value={selectedCourse.description} multiline rows={4} onChange={(description) => updateCourse((course) => { course.description = description; })} />
             <TextField label="Описание на странице курса" value={selectedCourse.detailText} multiline rows={5} onChange={(detailText) => updateCourse((course) => { course.detailText = detailText; })} />

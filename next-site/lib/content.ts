@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import crypto from "node:crypto";
 import path from "node:path";
 import type { CmsPayload, CourseContent, LeadFormText, SiteContent, UiLabels } from "./types";
 
@@ -7,9 +8,24 @@ const CONTENT_FILE = process.env.CONTENT_FILE || path.join(DATA_DIR, "content.js
 const LOTTIE_FILE = process.env.LOTTIE_FILE || path.join(DATA_DIR, "nfc-lottie.json");
 const FAVICON_FILE = process.env.FAVICON_FILE || path.join(DATA_DIR, "favicon");
 const FAVICON_META_FILE = process.env.FAVICON_META_FILE || path.join(DATA_DIR, "favicon.json");
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(DATA_DIR, "uploads");
 const DEFAULT_LOTTIE_FILE = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "assets", "nfc_contacts_lottie.json");
 const DEFAULT_CONTENT_FILE = path.join(/*turbopackIgnore: true*/ process.cwd(), "content", "default-content.json");
 const DEFAULT_FAVICON_FILE = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "favicon.ico");
+
+const IMAGE_TYPES: Record<string, string> = {
+  "image/svg+xml": ".svg",
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "image/x-icon": ".ico",
+  "image/vnd.microsoft.icon": ".ico"
+};
+
+const IMAGE_TYPES_BY_EXTENSION: Record<string, string> = Object.fromEntries(
+  Object.entries(IMAGE_TYPES).map(([contentType, extension]) => [extension, contentType])
+);
 
 export const DEFAULT_UI_LABELS: UiLabels = {
   coursesGridEyebrow: "программы",
@@ -82,6 +98,16 @@ async function writeBufferAtomic(filePath: string, value: Buffer) {
   await fs.rename(temp, filePath);
 }
 
+function sanitizeAssetName(name: string) {
+  return path.basename(name, path.extname(name)).replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "asset";
+}
+
+function assertSafeUploadName(name: string) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
+    throw new Error("Invalid asset name");
+  }
+}
+
 function normalizeContent(content: SiteContent): SiteContent {
   return {
     ...content,
@@ -95,6 +121,7 @@ function normalizeContent(content: SiteContent): SiteContent {
 
 export async function ensureContentFiles() {
   await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
 
   if (!(await pathExists(CONTENT_FILE))) {
     const fallback = await fs.readFile(DEFAULT_CONTENT_FILE, "utf8");
@@ -187,6 +214,37 @@ export async function writeFaviconAsset(bytes: Buffer, contentType: string) {
   await writeJsonAtomic(FAVICON_META_FILE, { contentType });
   const stats = await fs.stat(FAVICON_FILE);
   faviconCache = { signature: fileSignature(stats), value: { bytes, contentType } };
+}
+
+export function isAllowedImageContentType(contentType: string) {
+  return contentType in IMAGE_TYPES;
+}
+
+export async function writeUploadedAsset(bytes: Buffer, originalName: string, contentType: string) {
+  await ensureContentFilesOnce();
+
+  if (!isAllowedImageContentType(contentType)) {
+    throw new Error("Unsupported image type");
+  }
+
+  const extension = IMAGE_TYPES[contentType];
+  const fileName = `${Date.now()}-${crypto.randomUUID()}-${sanitizeAssetName(originalName)}${extension}`;
+  await writeBufferAtomic(path.join(UPLOADS_DIR, fileName), bytes);
+
+  return `/cms-api/assets/uploads/${fileName}`;
+}
+
+export async function readUploadedAsset(fileName: string) {
+  await ensureContentFilesOnce();
+  assertSafeUploadName(fileName);
+
+  const extension = path.extname(fileName).toLowerCase();
+  const contentType = IMAGE_TYPES_BY_EXTENSION[extension] || "application/octet-stream";
+
+  return {
+    bytes: await fs.readFile(path.join(UPLOADS_DIR, fileName)),
+    contentType
+  };
 }
 
 export async function writeCmsPayload(payload: Partial<CmsPayload>) {
