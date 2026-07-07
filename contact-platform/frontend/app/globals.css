@@ -491,6 +491,24 @@ legend {
   object-fit: contain;
 }
 
+.media-logo-preview {
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  place-items: center start;
+  padding: 14px;
+  background: var(--panel-soft);
+}
+
+.media-logo-preview img {
+  width: 180px;
+  max-width: 100%;
+  max-height: 78px;
+  object-fit: contain;
+  object-position: left center;
+}
+
 .settings-form {
   display: grid;
   gap: 14px;

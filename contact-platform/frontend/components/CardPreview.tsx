@@ -90,7 +90,7 @@ function fontFamily(value: Card["design"]["font_family"]) {
 export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const design = { ...defaultDesign, ...(card.design || {}) };
   const background = backgroundValue(design);
-  const logo = card.hide_logo ? "" : card.logo_url;
+  const logo = card.hide_logo ? "" : (card.logo_url || design.logo_url || "");
   const watermark = design.watermark && logo ? logo : "";
   const phones = card.phones || [];
   const products = card.products || [];

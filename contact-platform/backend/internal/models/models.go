@@ -42,6 +42,7 @@ type DesignConfig struct {
 	CardColor        string `json:"card_color"`
 	ButtonColor      string `json:"button_color"`
 	TextColor        string `json:"text_color"`
+	LogoURL          string `json:"logo_url"`
 	GradientFrom     string `json:"gradient_from"`
 	GradientTo       string `json:"gradient_to"`
 	GradientAngle    int    `json:"gradient_angle"`
@@ -105,6 +106,7 @@ type Design struct {
 	CardColor        string    `json:"card_color"`
 	ButtonColor      string    `json:"button_color"`
 	TextColor        string    `json:"text_color"`
+	LogoURL          string    `json:"logo_url"`
 	GradientFrom     string    `json:"gradient_from"`
 	GradientTo       string    `json:"gradient_to"`
 	GradientAngle    int       `json:"gradient_angle"`

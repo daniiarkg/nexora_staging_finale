@@ -27,6 +27,7 @@ export type DesignConfig = {
   card_color: string;
   button_color: string;
   text_color: string;
+  logo_url: string;
   gradient_from: string;
   gradient_to: string;
   gradient_angle: number;

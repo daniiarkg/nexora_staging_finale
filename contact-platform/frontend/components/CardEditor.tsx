@@ -89,6 +89,7 @@ export function CardEditor({ initial }: Props) {
       card_color: design.card_color,
       button_color: design.button_color,
       text_color: design.text_color,
+      logo_url: design.logo_url,
       gradient_from: design.gradient_from,
       gradient_to: design.gradient_to,
       gradient_angle: design.gradient_angle,
@@ -165,7 +166,14 @@ export function CardEditor({ initial }: Props) {
         <fieldset>
           <legend>Медиа</legend>
           <label><span>Фото</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => upload(e, "photo", "photo_url")} /></label>
-          <label><span>Лого</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={(e) => upload(e, "logo", "logo_url")} /></label>
+          <div className="media-logo-preview">
+            {card.logo_url ? <img src={card.logo_url} alt="Лого профиля" /> : card.design.logo_url ? <img src={card.design.logo_url} alt="Лого дизайна" /> : <span className="field-note">Лого не задано</span>}
+          </div>
+          <label><span>Лого профиля</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={(e) => upload(e, "logo", "logo_url")} /></label>
+          <div className="toolbar-actions">
+            <button type="button" className="secondary" onClick={() => patch({ logo_url: "" })} disabled={saving || !card.logo_url}>Сбросить лого профиля</button>
+          </div>
+          <p className="field-note">Лого профиля в приоритете. Если оно не задано, карточка возьмет лого из импортированного дизайна.</p>
           <label className="checkbox"><input type="checkbox" checked={card.hide_logo} onChange={(e) => patch({ hide_logo: e.target.checked })} /> Без лого</label>
         </fieldset>
 

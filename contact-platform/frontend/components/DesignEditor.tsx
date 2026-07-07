@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { ChangeEvent, useState } from "react";
+import { apiFetch, uploadFile } from "@/lib/api";
 import { defaultDesign } from "@/lib/design-presets";
 import type { Design } from "@/lib/types";
 import { CardPreview, demoCard } from "./CardPreview";
@@ -38,6 +38,22 @@ export function DesignEditor({ initial }: { initial?: Design }) {
 
   function patch(next: Partial<Design>) {
     setDesign((current) => ({ ...current, ...next }));
+  }
+
+  async function uploadDesignLogo(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSaving(true);
+    setError("");
+    try {
+      const url = await uploadFile(file, "logo");
+      patch({ logo_url: url });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "upload_failed");
+    } finally {
+      setSaving(false);
+      event.target.value = "";
+    }
   }
 
   function setBackgroundType(background_type: Design["background_type"]) {
@@ -110,6 +126,14 @@ export function DesignEditor({ initial }: { initial?: Design }) {
           <label><span>Цвет карточки</span><input type="color" value={colorValue(design.card_color, "#edffef")} onChange={(e) => patch({ card_color: e.target.value })} /></label>
           <label><span>Цвет кнопок</span><input type="color" value={colorValue(design.button_color, "#0a844a")} onChange={(e) => patch({ button_color: e.target.value })} /></label>
           <label><span>Цвет текста</span><input type="color" value={colorValue(design.text_color, "#030609")} onChange={(e) => patch({ text_color: e.target.value })} /></label>
+          <div className="media-logo-preview">
+            {design.logo_url ? <img src={design.logo_url} alt="Лого дизайна" /> : <span className="field-note">Лого дизайна не задано</span>}
+          </div>
+          <label><span>Лого дизайна</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={uploadDesignLogo} /></label>
+          <div className="toolbar-actions">
+            <button type="button" className="secondary" onClick={() => patch({ logo_url: "" })} disabled={saving || !design.logo_url}>Сбросить лого дизайна</button>
+          </div>
+          <p className="field-note">Лого дизайна используется только если в профиле карточки не загружено свое лого.</p>
           <label className="checkbox"><input type="checkbox" checked={design.watermark} onChange={(e) => patch({ watermark: e.target.checked })} /> Подложка из отображаемого лого</label>
         </fieldset>
 
