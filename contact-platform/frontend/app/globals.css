@@ -448,6 +448,114 @@ legend {
   gap: 12px;
 }
 
+.background-designer {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel-soft);
+}
+
+.background-designer-head {
+  display: grid;
+  gap: 10px;
+}
+
+.background-designer-head b {
+  font-size: 14px;
+}
+
+.segmented-control {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  background: #fff;
+}
+
+.segmented-control button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.segmented-control button:hover,
+.segmented-control button.is-active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.mesh-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.mesh-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mesh-canvas {
+  position: relative;
+  min-height: 220px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: crosshair;
+  background-size: 120% 120%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28);
+}
+
+.mesh-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .18) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: .34;
+}
+
+.mesh-point {
+  position: absolute;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .24);
+}
+
+.mesh-point:hover,
+.mesh-point.is-active {
+  outline: 3px solid rgba(20, 22, 20, .22);
+  outline-offset: 2px;
+}
+
+.mesh-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.mesh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .field-note {
   margin: 0;
   color: var(--muted);
@@ -544,7 +652,7 @@ legend {
   padding: 28px;
 }
 
-.preview-stage.is-animated-gradient {
+.is-animated-gradient {
   background-size: 180% 180% !important;
   animation: cardGradientMove 10s ease-in-out infinite alternate;
 }
@@ -552,6 +660,49 @@ legend {
 @keyframes cardGradientMove {
   from { background-position: 0% 50%; }
   to { background-position: 100% 50%; }
+}
+
+.mesh-animation-drift {
+  background-size: 140% 140% !important;
+  animation: meshDrift 14s ease-in-out infinite alternate;
+}
+
+.mesh-animation-pulse {
+  background-size: 125% 125% !important;
+  animation: meshPulse 8s ease-in-out infinite;
+}
+
+.mesh-animation-orbit {
+  background-size: 150% 150% !important;
+  animation: meshOrbit 18s linear infinite;
+}
+
+.mesh-animation-breathe {
+  background-size: 118% 118% !important;
+  animation: meshBreathe 11s ease-in-out infinite;
+}
+
+@keyframes meshDrift {
+  from { background-position: 0% 40%; }
+  to { background-position: 100% 60%; }
+}
+
+@keyframes meshPulse {
+  0%, 100% { background-position: 50% 50%; background-size: 118% 118%; }
+  50% { background-position: 45% 55%; background-size: 150% 150%; }
+}
+
+@keyframes meshOrbit {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+@keyframes meshBreathe {
+  0%, 100% { background-position: 50% 48%; background-size: 112% 112%; }
+  50% { background-position: 50% 54%; background-size: 134% 134%; }
 }
 
 .preview-card-stack {

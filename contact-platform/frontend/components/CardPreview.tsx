@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Card } from "@/lib/types";
 import { defaultDesign } from "@/lib/design-presets";
+import { designCardBackground, designStageBackground, meshAnimationClass } from "@/lib/mesh-gradient";
 
 export function emptyCard(): Card {
   return {
@@ -71,15 +72,6 @@ type CardPreviewProps = {
   vcfHref?: string;
 };
 
-function backgroundValue(design: Card["design"]) {
-  if (design.background_type === "gradient") {
-    const from = design.gradient_from || design.background_value || "#edffef";
-    const to = design.gradient_to || design.button_color || "#0a844a";
-    return `linear-gradient(${design.gradient_angle || 135}deg, ${from}, ${to})`;
-  }
-  return design.background_value || "#edffef";
-}
-
 function fontFamily(value: Card["design"]["font_family"]) {
   const families = {
     system: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
@@ -100,7 +92,8 @@ function DownloadIcon() {
 
 export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const design = { ...defaultDesign, ...(card.design || {}) };
-  const background = backgroundValue(design);
+  const background = designStageBackground(design);
+  const cardBackground = designCardBackground(design);
   const profileLogo = card.logo_url || "";
   const designLogo = design.logo_url || "";
   const logo = card.hide_logo ? "" : (profileLogo || designLogo);
@@ -112,15 +105,19 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const socials = socialActions(card);
   const vcfButton = card.vcf_button || { enabled: true, label: "Скачать VCF" };
   const fontScale = Math.min(Math.max(design.font_size || 100, 82), 122) / 100;
+  const stageAnimationClass = design.background_type === "mesh" ? meshAnimationClass(design.background_mesh.animation) : "";
+  const cardAnimationClass = design.card_background_type === "mesh" ? meshAnimationClass(design.card_mesh.animation) : "";
+  const gradientStageClass = design.background_type === "gradient" && design.gradient_animated ? " is-animated-gradient" : "";
+  const gradientCardClass = design.card_background_type === "gradient" && design.card_gradient_animated ? " is-animated-gradient" : "";
   return (
-    <section className={`preview-stage${design.background_type === "gradient" && design.gradient_animated ? " is-animated-gradient" : ""}`} data-layout={design.layout} style={{ background }}>
+    <section className={`preview-stage${gradientStageClass}${stageAnimationClass}`} data-layout={design.layout} style={{ background }}>
       <div className="preview-card-stack">
         {design.top_image_url ? <img className="preview-edge-image" src={design.top_image_url} alt="" /> : null}
         <article
-          className="preview-card"
+          className={`preview-card${gradientCardClass}${cardAnimationClass}`}
           data-card-type={card.type}
           style={{
-            background: design.card_color || "#edffef",
+            background: cardBackground,
             color: design.text_color || "#030609",
             "--button-color": design.button_color || "#0a844a",
             "--card-font-family": fontFamily(design.font_family),

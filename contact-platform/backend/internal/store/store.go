@@ -17,6 +17,8 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
+const designSelectColumns = `id::text, COALESCE(owner_id::text,''), name, background_type, background_value, background_mesh, card_background_type, card_background_value, card_color, card_gradient_from, card_gradient_to, card_gradient_angle, card_gradient_animated, card_mesh, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at`
+
 type Store struct {
 	db *pgxpool.Pool
 }
@@ -54,22 +56,29 @@ func defaultAppSettings() models.AppSettings {
 			Phones:        []string{"+996 555 123 456"},
 			Socials:       models.Socials{Telegram: "https://t.me/nexora"},
 			Design: models.DesignConfig{
-				BackgroundType:   "solid",
-				BackgroundValue:  "#edffef",
-				CardColor:        "#edffef",
-				ButtonColor:      "#0a844a",
-				TextColor:        "#030609",
-				LogoURL:          logo,
-				LogoMinWidth:     250,
-				GradientFrom:     "#edffef",
-				GradientTo:       "#0a844a",
-				GradientAngle:    135,
-				GradientAnimated: false,
-				FontFamily:       "system",
-				FontWeight:       700,
-				FontSize:         100,
-				Layout:           "custom",
-				Watermark:        true,
+				BackgroundType:      "solid",
+				BackgroundValue:     "#edffef",
+				BackgroundMesh:      defaultMeshGradient("#edffef", "#0a844a"),
+				CardBackgroundType:  "solid",
+				CardBackgroundValue: "#edffef",
+				CardColor:           "#edffef",
+				CardGradientFrom:    "#edffef",
+				CardGradientTo:      "#0a844a",
+				CardGradientAngle:   135,
+				CardMesh:            defaultMeshGradient("#edffef", "#0a844a"),
+				ButtonColor:         "#0a844a",
+				TextColor:           "#030609",
+				LogoURL:             logo,
+				LogoMinWidth:        250,
+				GradientFrom:        "#edffef",
+				GradientTo:          "#0a844a",
+				GradientAngle:       135,
+				GradientAnimated:    false,
+				FontFamily:          "system",
+				FontWeight:          700,
+				FontSize:            100,
+				Layout:              "custom",
+				Watermark:           true,
 			},
 			VCFButton:    models.VCFButton{Enabled: true, Label: "Сохранить контакт"},
 			CustomFields: []models.CustomField{{Label: "Office", Value: "Mon-Fri, 10:00-18:00", Type: "text"}},
@@ -93,44 +102,59 @@ func (s *Store) EnsureRoot(ctx context.Context, passwordHash string) error {
 func (s *Store) EnsureDesignPresets(ctx context.Context) error {
 	presets := []models.Design{
 		{
-			Name:            "Nexora green default",
-			BackgroundType:  "solid",
-			BackgroundValue: "#edffef",
-			CardColor:       "#edffef",
-			ButtonColor:     "#0a844a",
-			TextColor:       "#030609",
-			Layout:          "nexora_default",
-			Watermark:       true,
+			Name:                "Nexora green default",
+			BackgroundType:      "solid",
+			BackgroundValue:     "#edffef",
+			CardBackgroundType:  "solid",
+			CardBackgroundValue: "#edffef",
+			CardColor:           "#edffef",
+			CardGradientFrom:    "#edffef",
+			CardGradientTo:      "#0a844a",
+			CardGradientAngle:   135,
+			ButtonColor:         "#0a844a",
+			TextColor:           "#030609",
+			Layout:              "nexora_default",
+			Watermark:           true,
 		},
 		{
-			Name:            "White",
-			BackgroundType:  "solid",
-			BackgroundValue: "#f4f4f5",
-			CardColor:       "#ffffff",
-			ButtonColor:     "#111111",
-			TextColor:       "#111111",
-			Layout:          "white",
-			Watermark:       false,
+			Name:                "White",
+			BackgroundType:      "solid",
+			BackgroundValue:     "#f4f4f5",
+			CardBackgroundType:  "solid",
+			CardBackgroundValue: "#ffffff",
+			CardColor:           "#ffffff",
+			CardGradientFrom:    "#ffffff",
+			CardGradientTo:      "#111111",
+			CardGradientAngle:   135,
+			ButtonColor:         "#111111",
+			TextColor:           "#111111",
+			Layout:              "white",
+			Watermark:           false,
 		},
 		{
-			Name:            "Dark",
-			BackgroundType:  "solid",
-			BackgroundValue: "#080808",
-			CardColor:       "#000000",
-			ButtonColor:     "#ffffff",
-			TextColor:       "#f4f4f5",
-			Layout:          "dark",
-			Watermark:       false,
+			Name:                "Dark",
+			BackgroundType:      "solid",
+			BackgroundValue:     "#080808",
+			CardBackgroundType:  "solid",
+			CardBackgroundValue: "#000000",
+			CardColor:           "#000000",
+			CardGradientFrom:    "#000000",
+			CardGradientTo:      "#4b5563",
+			CardGradientAngle:   135,
+			ButtonColor:         "#ffffff",
+			TextColor:           "#f4f4f5",
+			Layout:              "dark",
+			Watermark:           false,
 		},
 	}
 	for _, preset := range presets {
 		_, err := s.db.Exec(ctx, `
-			INSERT INTO designs (name, background_type, background_value, card_color, button_color, text_color, layout, watermark)
-			SELECT $1,$2,$3,$4,$5,$6,$7,$8
+			INSERT INTO designs (name, background_type, background_value, card_background_type, card_background_value, card_color, card_gradient_from, card_gradient_to, card_gradient_angle, button_color, text_color, layout, watermark)
+			SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
 			WHERE NOT EXISTS (
-				SELECT 1 FROM designs WHERE owner_id IS NULL AND layout=$7
+				SELECT 1 FROM designs WHERE owner_id IS NULL AND layout=$12
 			)
-		`, preset.Name, preset.BackgroundType, preset.BackgroundValue, preset.CardColor, preset.ButtonColor, preset.TextColor, preset.Layout, preset.Watermark)
+		`, preset.Name, preset.BackgroundType, preset.BackgroundValue, preset.CardBackgroundType, preset.CardBackgroundValue, preset.CardColor, preset.CardGradientFrom, preset.CardGradientTo, preset.CardGradientAngle, preset.ButtonColor, preset.TextColor, preset.Layout, preset.Watermark)
 		if err != nil {
 			return err
 		}
@@ -425,7 +449,7 @@ func (s *Store) SetCardStatus(ctx context.Context, id, status string) (models.Ca
 }
 
 func (s *Store) ListDesigns(ctx context.Context) ([]models.Design, error) {
-	rows, err := s.db.Query(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs ORDER BY updated_at DESC`)
+	rows, err := s.db.Query(ctx, `SELECT `+designSelectColumns+` FROM designs ORDER BY updated_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -434,9 +458,7 @@ func (s *Store) ListDesigns(ctx context.Context) ([]models.Design, error) {
 }
 
 func (s *Store) GetDesign(ctx context.Context, id string) (models.Design, error) {
-	var out models.Design
-	err := s.db.QueryRow(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs WHERE id=$1`, id).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.LogoMinWidth, &out.TopImageURL, &out.BottomImageURL, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+	out, err := scanDesign(s.db.QueryRow(ctx, `SELECT `+designSelectColumns+` FROM designs WHERE id=$1`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
@@ -444,27 +466,32 @@ func (s *Store) GetDesign(ctx context.Context, id string) (models.Design, error)
 }
 
 func (s *Store) CreateDesign(ctx context.Context, design models.Design) (models.Design, error) {
-	var out models.Design
-	err := s.db.QueryRow(ctx, `
-		INSERT INTO designs (owner_id, name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark)
-		VALUES (NULLIF($1,'')::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
-	`, design.OwnerID, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), strings.TrimSpace(design.LogoURL), boundedInt(design.LogoMinWidth, 250, 120, 420), strings.TrimSpace(design.TopImageURL), strings.TrimSpace(design.BottomImageURL), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.LogoMinWidth, &out.TopImageURL, &out.BottomImageURL, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+	design = normalizeDesignRecord(design)
+	backgroundMesh, _ := json.Marshal(design.BackgroundMesh)
+	cardMesh, _ := json.Marshal(design.CardMesh)
+	out, err := scanDesign(s.db.QueryRow(ctx, `
+		INSERT INTO designs (owner_id, name, background_type, background_value, background_mesh, card_background_type, card_background_value, card_color, card_gradient_from, card_gradient_to, card_gradient_angle, card_gradient_animated, card_mesh, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark)
+		VALUES (NULLIF($1,'')::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+		RETURNING `+designSelectColumns+`
+	`, design.OwnerID, design.Name, design.BackgroundType, design.BackgroundValue, backgroundMesh, design.CardBackgroundType, design.CardBackgroundValue, design.CardColor, design.CardGradientFrom, design.CardGradientTo, design.CardGradientAngle, design.CardGradientAnimated, cardMesh, design.ButtonColor, design.TextColor, design.LogoURL, design.LogoMinWidth, design.TopImageURL, design.BottomImageURL, design.GradientFrom, design.GradientTo, design.GradientAngle, design.GradientAnimated, design.FontFamily, design.FontWeight, design.FontSize, design.Layout, design.Watermark))
 	return out, err
 }
 
 func (s *Store) UpdateDesign(ctx context.Context, id string, design models.Design) (models.Design, error) {
-	var out models.Design
-	err := s.db.QueryRow(ctx, `
+	design = normalizeDesignRecord(design)
+	backgroundMesh, _ := json.Marshal(design.BackgroundMesh)
+	cardMesh, _ := json.Marshal(design.CardMesh)
+	out, err := scanDesign(s.db.QueryRow(ctx, `
 		UPDATE designs
-		SET name=$2, background_type=$3, background_value=$4, card_color=$5, button_color=$6, text_color=$7,
-		    logo_url=$8, logo_min_width=$9, top_image_url=$10, bottom_image_url=$11, gradient_from=$12, gradient_to=$13, gradient_angle=$14, gradient_animated=$15,
-		    font_family=$16, font_weight=$17, font_size=$18, layout=$19, watermark=$20, updated_at=now()
+		SET name=$2, background_type=$3, background_value=$4, background_mesh=$5,
+		    card_background_type=$6, card_background_value=$7, card_color=$8,
+		    card_gradient_from=$9, card_gradient_to=$10, card_gradient_angle=$11, card_gradient_animated=$12, card_mesh=$13,
+		    button_color=$14, text_color=$15, logo_url=$16, logo_min_width=$17, top_image_url=$18, bottom_image_url=$19,
+		    gradient_from=$20, gradient_to=$21, gradient_angle=$22, gradient_animated=$23,
+		    font_family=$24, font_weight=$25, font_size=$26, layout=$27, watermark=$28, updated_at=now()
 		WHERE id=$1
-		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, top_image_url, bottom_image_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
-	`, id, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), strings.TrimSpace(design.LogoURL), boundedInt(design.LogoMinWidth, 250, 120, 420), strings.TrimSpace(design.TopImageURL), strings.TrimSpace(design.BottomImageURL), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.LogoMinWidth, &out.TopImageURL, &out.BottomImageURL, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+		RETURNING `+designSelectColumns+`
+	`, id, design.Name, design.BackgroundType, design.BackgroundValue, backgroundMesh, design.CardBackgroundType, design.CardBackgroundValue, design.CardColor, design.CardGradientFrom, design.CardGradientTo, design.CardGradientAngle, design.CardGradientAnimated, cardMesh, design.ButtonColor, design.TextColor, design.LogoURL, design.LogoMinWidth, design.TopImageURL, design.BottomImageURL, design.GradientFrom, design.GradientTo, design.GradientAngle, design.GradientAnimated, design.FontFamily, design.FontWeight, design.FontSize, design.Layout, design.Watermark))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
@@ -568,11 +595,59 @@ func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte, []byte) {
 	return phones, socials, design, vcfButton, fields
 }
 
+type designScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanDesign(scanner designScanner) (models.Design, error) {
+	var design models.Design
+	var backgroundMeshJSON, cardMeshJSON []byte
+	err := scanner.Scan(
+		&design.ID,
+		&design.OwnerID,
+		&design.Name,
+		&design.BackgroundType,
+		&design.BackgroundValue,
+		&backgroundMeshJSON,
+		&design.CardBackgroundType,
+		&design.CardBackgroundValue,
+		&design.CardColor,
+		&design.CardGradientFrom,
+		&design.CardGradientTo,
+		&design.CardGradientAngle,
+		&design.CardGradientAnimated,
+		&cardMeshJSON,
+		&design.ButtonColor,
+		&design.TextColor,
+		&design.LogoURL,
+		&design.LogoMinWidth,
+		&design.TopImageURL,
+		&design.BottomImageURL,
+		&design.GradientFrom,
+		&design.GradientTo,
+		&design.GradientAngle,
+		&design.GradientAnimated,
+		&design.FontFamily,
+		&design.FontWeight,
+		&design.FontSize,
+		&design.Layout,
+		&design.Watermark,
+		&design.CreatedAt,
+		&design.UpdatedAt,
+	)
+	if err != nil {
+		return design, err
+	}
+	_ = json.Unmarshal(backgroundMeshJSON, &design.BackgroundMesh)
+	_ = json.Unmarshal(cardMeshJSON, &design.CardMesh)
+	return normalizeDesignRecord(design), nil
+}
+
 func scanDesigns(rows pgx.Rows) ([]models.Design, error) {
 	designs := []models.Design{}
 	for rows.Next() {
-		var design models.Design
-		if err := rows.Scan(&design.ID, &design.OwnerID, &design.Name, &design.BackgroundType, &design.BackgroundValue, &design.CardColor, &design.ButtonColor, &design.TextColor, &design.LogoURL, &design.LogoMinWidth, &design.TopImageURL, &design.BottomImageURL, &design.GradientFrom, &design.GradientTo, &design.GradientAngle, &design.GradientAnimated, &design.FontFamily, &design.FontWeight, &design.FontSize, &design.Layout, &design.Watermark, &design.CreatedAt, &design.UpdatedAt); err != nil {
+		design, err := scanDesign(rows)
+		if err != nil {
 			return nil, err
 		}
 		designs = append(designs, design)
@@ -682,11 +757,94 @@ func positiveInt(value, fallback int) int {
 	return fallback
 }
 
+func clampedFloat(value, minValue, maxValue float64) float64 {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
+}
+
+func normalizeBackgroundType(value string) string {
+	switch strings.TrimSpace(value) {
+	case "solid", "gradient", "mesh":
+		return strings.TrimSpace(value)
+	default:
+		return "solid"
+	}
+}
+
+func normalizeMeshAnimation(value string) string {
+	switch strings.TrimSpace(value) {
+	case "none", "drift", "pulse", "orbit", "breathe":
+		return strings.TrimSpace(value)
+	default:
+		return "none"
+	}
+}
+
+func normalizeColor(value, fallback string) string {
+	value = strings.TrimSpace(value)
+	if len(value) == 7 && strings.HasPrefix(value, "#") {
+		return value
+	}
+	return fallback
+}
+
+func defaultMeshGradient(primary, secondary string) models.MeshGradientConfig {
+	return models.MeshGradientConfig{
+		Preset:    "nexora",
+		Animation: "none",
+		Points: []models.MeshPoint{
+			{ID: "p1", X: 18, Y: 22, Color: normalizeColor(primary, "#edffef"), Opacity: 0.92, Radius: 48},
+			{ID: "p2", X: 82, Y: 18, Color: normalizeColor(secondary, "#0a844a"), Opacity: 0.58, Radius: 42},
+			{ID: "p3", X: 76, Y: 84, Color: "#ffffff", Opacity: 0.72, Radius: 46},
+			{ID: "p4", X: 24, Y: 78, Color: "#c4f7d0", Opacity: 0.62, Radius: 38},
+		},
+	}
+}
+
+func normalizeMeshGradient(mesh models.MeshGradientConfig, primary, secondary string) models.MeshGradientConfig {
+	mesh.Preset = strings.TrimSpace(mesh.Preset)
+	if mesh.Preset == "" {
+		mesh.Preset = "custom"
+	}
+	mesh.Animation = normalizeMeshAnimation(mesh.Animation)
+	if len(mesh.Points) < 3 {
+		mesh = defaultMeshGradient(primary, secondary)
+	}
+	if len(mesh.Points) > 6 {
+		mesh.Points = mesh.Points[:6]
+	}
+	for index := range mesh.Points {
+		point := &mesh.Points[index]
+		point.ID = strings.TrimSpace(point.ID)
+		if point.ID == "" {
+			point.ID = "p" + strconv.Itoa(index+1)
+		}
+		point.X = clampedFloat(point.X, 0, 100)
+		point.Y = clampedFloat(point.Y, 0, 100)
+		point.Color = normalizeColor(point.Color, primary)
+		point.Opacity = clampedFloat(point.Opacity, 0, 1)
+		point.Radius = clampedFloat(point.Radius, 18, 90)
+	}
+	return mesh
+}
+
 func normalizeDesignConfig(design models.DesignConfig) models.DesignConfig {
-	design.BackgroundType = defaultString(design.BackgroundType, "solid")
+	design.BackgroundType = normalizeBackgroundType(design.BackgroundType)
 	design.BackgroundValue = defaultString(design.BackgroundValue, "#edffef")
-	design.CardColor = defaultString(design.CardColor, "#edffef")
 	design.ButtonColor = defaultString(design.ButtonColor, "#0a844a")
+	design.CardBackgroundType = normalizeBackgroundType(design.CardBackgroundType)
+	design.CardBackgroundValue = defaultString(design.CardBackgroundValue, defaultString(design.CardColor, "#edffef"))
+	design.CardColor = defaultString(design.CardColor, "#edffef")
+	design.CardGradientFrom = defaultString(design.CardGradientFrom, design.CardBackgroundValue)
+	design.CardGradientTo = defaultString(design.CardGradientTo, design.ButtonColor)
+	design.CardGradientAngle = positiveInt(design.CardGradientAngle, 135)
+	design.BackgroundMesh = normalizeMeshGradient(design.BackgroundMesh, design.BackgroundValue, design.ButtonColor)
+	design.CardMesh = normalizeMeshGradient(design.CardMesh, design.CardBackgroundValue, design.ButtonColor)
 	design.TextColor = defaultString(design.TextColor, "#030609")
 	design.LogoURL = strings.TrimSpace(design.LogoURL)
 	design.LogoMinWidth = boundedInt(design.LogoMinWidth, 250, 120, 420)
@@ -699,6 +857,65 @@ func normalizeDesignConfig(design models.DesignConfig) models.DesignConfig {
 	design.FontWeight = positiveInt(design.FontWeight, 700)
 	design.FontSize = positiveInt(design.FontSize, 100)
 	design.Layout = defaultString(design.Layout, "custom")
+	return design
+}
+
+func normalizeDesignRecord(design models.Design) models.Design {
+	config := normalizeDesignConfig(models.DesignConfig{
+		BackgroundType:       design.BackgroundType,
+		BackgroundValue:      design.BackgroundValue,
+		BackgroundMesh:       design.BackgroundMesh,
+		CardBackgroundType:   design.CardBackgroundType,
+		CardBackgroundValue:  design.CardBackgroundValue,
+		CardColor:            design.CardColor,
+		CardGradientFrom:     design.CardGradientFrom,
+		CardGradientTo:       design.CardGradientTo,
+		CardGradientAngle:    design.CardGradientAngle,
+		CardGradientAnimated: design.CardGradientAnimated,
+		CardMesh:             design.CardMesh,
+		ButtonColor:          design.ButtonColor,
+		TextColor:            design.TextColor,
+		LogoURL:              design.LogoURL,
+		LogoMinWidth:         design.LogoMinWidth,
+		TopImageURL:          design.TopImageURL,
+		BottomImageURL:       design.BottomImageURL,
+		GradientFrom:         design.GradientFrom,
+		GradientTo:           design.GradientTo,
+		GradientAngle:        design.GradientAngle,
+		GradientAnimated:     design.GradientAnimated,
+		FontFamily:           design.FontFamily,
+		FontWeight:           design.FontWeight,
+		FontSize:             design.FontSize,
+		Layout:               design.Layout,
+		Watermark:            design.Watermark,
+	})
+	design.Name = strings.TrimSpace(design.Name)
+	design.BackgroundType = config.BackgroundType
+	design.BackgroundValue = config.BackgroundValue
+	design.BackgroundMesh = config.BackgroundMesh
+	design.CardBackgroundType = config.CardBackgroundType
+	design.CardBackgroundValue = config.CardBackgroundValue
+	design.CardColor = config.CardColor
+	design.CardGradientFrom = config.CardGradientFrom
+	design.CardGradientTo = config.CardGradientTo
+	design.CardGradientAngle = config.CardGradientAngle
+	design.CardGradientAnimated = config.CardGradientAnimated
+	design.CardMesh = config.CardMesh
+	design.ButtonColor = config.ButtonColor
+	design.TextColor = config.TextColor
+	design.LogoURL = config.LogoURL
+	design.LogoMinWidth = config.LogoMinWidth
+	design.TopImageURL = config.TopImageURL
+	design.BottomImageURL = config.BottomImageURL
+	design.GradientFrom = config.GradientFrom
+	design.GradientTo = config.GradientTo
+	design.GradientAngle = config.GradientAngle
+	design.GradientAnimated = config.GradientAnimated
+	design.FontFamily = config.FontFamily
+	design.FontWeight = config.FontWeight
+	design.FontSize = config.FontSize
+	design.Layout = config.Layout
+	design.Watermark = config.Watermark
 	return design
 }
 

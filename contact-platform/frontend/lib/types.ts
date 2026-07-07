@@ -21,10 +21,37 @@ export type CustomField = {
   sort_order?: number;
 };
 
+export type BackgroundType = "solid" | "gradient" | "mesh";
+
+export type MeshAnimationPreset = "none" | "drift" | "pulse" | "orbit" | "breathe";
+
+export type MeshPoint = {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  opacity: number;
+  radius: number;
+};
+
+export type MeshGradientConfig = {
+  preset: string;
+  animation: MeshAnimationPreset;
+  points: MeshPoint[];
+};
+
 export type DesignConfig = {
-  background_type: "solid" | "gradient";
+  background_type: BackgroundType;
   background_value: string;
+  background_mesh: MeshGradientConfig;
+  card_background_type: BackgroundType;
+  card_background_value: string;
   card_color: string;
+  card_gradient_from: string;
+  card_gradient_to: string;
+  card_gradient_angle: number;
+  card_gradient_animated: boolean;
+  card_mesh: MeshGradientConfig;
   button_color: string;
   text_color: string;
   logo_url: string;

@@ -1,9 +1,18 @@
 import type { DesignConfig } from "./types";
+import { defaultMeshGradient } from "./mesh-gradient";
 
 export const defaultDesign: DesignConfig = {
   background_type: "solid",
   background_value: "#edffef",
+  background_mesh: defaultMeshGradient("#edffef", "#0a844a"),
+  card_background_type: "solid",
+  card_background_value: "#edffef",
   card_color: "#edffef",
+  card_gradient_from: "#edffef",
+  card_gradient_to: "#0a844a",
+  card_gradient_angle: 135,
+  card_gradient_animated: false,
+  card_mesh: defaultMeshGradient("#edffef", "#0a844a"),
   button_color: "#0a844a",
   text_color: "#030609",
   logo_url: "",

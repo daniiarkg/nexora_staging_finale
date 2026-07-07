@@ -593,10 +593,19 @@ func normalizeFields(fields []models.CustomField) []models.CustomField {
 }
 
 func normalizeDesign(design models.DesignConfig) models.DesignConfig {
-	design.BackgroundType = defaultString(design.BackgroundType, "solid")
+	design.BackgroundType = normalizeBackgroundType(design.BackgroundType)
 	design.BackgroundValue = defaultString(design.BackgroundValue, "#edffef")
-	design.CardColor = defaultString(design.CardColor, "#edffef")
 	design.ButtonColor = defaultString(design.ButtonColor, "#0a844a")
+	design.BackgroundMesh = normalizeMeshGradient(design.BackgroundMesh, design.BackgroundValue, design.ButtonColor)
+	design.CardBackgroundType = normalizeBackgroundType(design.CardBackgroundType)
+	design.CardBackgroundValue = defaultString(design.CardBackgroundValue, defaultString(design.CardColor, "#edffef"))
+	design.CardColor = defaultString(design.CardColor, "#edffef")
+	design.CardGradientFrom = defaultString(design.CardGradientFrom, design.CardBackgroundValue)
+	design.CardGradientTo = defaultString(design.CardGradientTo, design.ButtonColor)
+	if design.CardGradientAngle <= 0 {
+		design.CardGradientAngle = 135
+	}
+	design.CardMesh = normalizeMeshGradient(design.CardMesh, design.CardBackgroundValue, design.ButtonColor)
 	design.TextColor = defaultString(design.TextColor, "#030609")
 	design.LogoURL = strings.TrimSpace(design.LogoURL)
 	if design.LogoMinWidth <= 0 {
@@ -618,6 +627,82 @@ func normalizeDesign(design models.DesignConfig) models.DesignConfig {
 	}
 	design.Layout = defaultString(design.Layout, "custom")
 	return design
+}
+
+func normalizeBackgroundType(value string) string {
+	switch strings.TrimSpace(value) {
+	case "solid", "gradient", "mesh":
+		return strings.TrimSpace(value)
+	default:
+		return "solid"
+	}
+}
+
+func normalizeMeshAnimation(value string) string {
+	switch strings.TrimSpace(value) {
+	case "none", "drift", "pulse", "orbit", "breathe":
+		return strings.TrimSpace(value)
+	default:
+		return "none"
+	}
+}
+
+func normalizeColor(value, fallback string) string {
+	value = strings.TrimSpace(value)
+	if len(value) == 7 && strings.HasPrefix(value, "#") {
+		return value
+	}
+	return fallback
+}
+
+func clampedFloat(value, minValue, maxValue float64) float64 {
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
+}
+
+func defaultMeshGradient(primary, secondary string) models.MeshGradientConfig {
+	return models.MeshGradientConfig{
+		Preset:    "nexora",
+		Animation: "none",
+		Points: []models.MeshPoint{
+			{ID: "p1", X: 18, Y: 22, Color: normalizeColor(primary, "#edffef"), Opacity: 0.92, Radius: 48},
+			{ID: "p2", X: 82, Y: 18, Color: normalizeColor(secondary, "#0a844a"), Opacity: 0.58, Radius: 42},
+			{ID: "p3", X: 76, Y: 84, Color: "#ffffff", Opacity: 0.72, Radius: 46},
+			{ID: "p4", X: 24, Y: 78, Color: "#c4f7d0", Opacity: 0.62, Radius: 38},
+		},
+	}
+}
+
+func normalizeMeshGradient(mesh models.MeshGradientConfig, primary, secondary string) models.MeshGradientConfig {
+	mesh.Preset = strings.TrimSpace(mesh.Preset)
+	if mesh.Preset == "" {
+		mesh.Preset = "custom"
+	}
+	mesh.Animation = normalizeMeshAnimation(mesh.Animation)
+	if len(mesh.Points) < 3 {
+		mesh = defaultMeshGradient(primary, secondary)
+	}
+	if len(mesh.Points) > 6 {
+		mesh.Points = mesh.Points[:6]
+	}
+	for index := range mesh.Points {
+		point := &mesh.Points[index]
+		point.ID = strings.TrimSpace(point.ID)
+		if point.ID == "" {
+			point.ID = fmt.Sprintf("p%d", index+1)
+		}
+		point.X = clampedFloat(point.X, 0, 100)
+		point.Y = clampedFloat(point.Y, 0, 100)
+		point.Color = normalizeColor(point.Color, primary)
+		point.Opacity = clampedFloat(point.Opacity, 0, 1)
+		point.Radius = clampedFloat(point.Radius, 18, 90)
+	}
+	return mesh
 }
 
 func normalizeVCFButton(button models.VCFButton) models.VCFButton {

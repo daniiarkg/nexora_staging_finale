@@ -5,6 +5,12 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import type { Design } from "@/lib/types";
 
+function backgroundLabel(type: Design["background_type"]) {
+  if (type === "mesh") return "Mesh";
+  if (type === "gradient") return "Градиент";
+  return "Цвет";
+}
+
 export default function DesignsPage() {
   const [designs, setDesigns] = useState<Design[]>([]);
   useEffect(() => { apiFetch<{ designs: Design[] }>("/api/designs").then((d) => setDesigns(d.designs)).catch(() => setDesigns([])); }, []);
@@ -21,7 +27,7 @@ export default function DesignsPage() {
         <div className="list">
           {designs.map((design) => (
             <article className="list-item" key={design.id}>
-              <div><b>{design.name}</b><span>{design.background_type === "gradient" ? "Градиент" : "Цвет"} · {design.font_family} · {design.font_weight}</span></div>
+              <div><b>{design.name}</b><span>Фон: {backgroundLabel(design.background_type)} · Карточка: {backgroundLabel(design.card_background_type)} · {design.font_family} · {design.font_weight}</span></div>
               <Link className="button secondary compact" href={`/dashboard/designs/${design.id}/edit`}>Edit</Link>
             </article>
           ))}
