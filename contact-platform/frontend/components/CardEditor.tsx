@@ -3,35 +3,47 @@
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
 import { apiFetch, uploadFile } from "@/lib/api";
-import { applyDesignPreset } from "@/lib/design-presets";
-import type { AppSettings, Card, CustomField, Product } from "@/lib/types";
+import type { AppSettings, Card, CustomField, Design, DesignConfig, Product } from "@/lib/types";
 import { CardPreview, emptyCard } from "./CardPreview";
 
 type Props = {
   initial?: Card;
 };
 
+function withCardDefaults(initial?: Card): Card {
+  const base = emptyCard();
+  if (!initial) return base;
+  return {
+    ...base,
+    ...initial,
+    design: { ...base.design, ...(initial.design || {}) },
+    vcf_button: { ...base.vcf_button, ...(initial.vcf_button || {}) },
+    phones: initial.phones?.length ? initial.phones : base.phones,
+    custom_fields: initial.custom_fields || [],
+    products: initial.products || []
+  };
+}
+
 export function CardEditor({ initial }: Props) {
   const router = useRouter();
-  const [card, setCard] = useState<Card>(initial || emptyCard());
+  const [card, setCard] = useState<Card>(() => withCardDefaults(initial));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<AppSettings>({ default_logo_url: "" });
+  const [designs, setDesigns] = useState<Design[]>([]);
+  const [selectedDesignId, setSelectedDesignId] = useState(initial?.design_id || "");
 
   useEffect(() => {
     apiFetch<{ settings: AppSettings }>("/api/settings").then((data) => setSettings(data.settings)).catch(() => undefined);
+    apiFetch<{ designs: Design[] }>("/api/designs").then((data) => {
+      setDesigns(data.designs);
+      if (!selectedDesignId && data.designs[0]?.id) setSelectedDesignId(data.designs[0].id);
+    }).catch(() => setDesigns([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function patch(next: Partial<Card>) {
     setCard((current) => ({ ...current, ...next }));
-  }
-
-  function patchDesign(key: string, value: string | boolean) {
-    setCard((current) => ({ ...current, design: { ...current.design, [key]: value } }));
-  }
-
-  function applyPreset(layout: string) {
-    setCard((current) => ({ ...current, design: { ...current.design, ...applyDesignPreset(layout) } }));
   }
 
   function setPhone(index: number, value: string) {
@@ -70,6 +82,31 @@ export function CardEditor({ initial }: Props) {
     const custom_fields = [...card.custom_fields];
     custom_fields[index] = { ...custom_fields[index], ...next };
     patch({ custom_fields });
+  }
+
+  function designConfigFrom(design: Design): DesignConfig {
+    return {
+      background_type: design.background_type,
+      background_value: design.background_value,
+      card_color: design.card_color,
+      button_color: design.button_color,
+      text_color: design.text_color,
+      gradient_from: design.gradient_from,
+      gradient_to: design.gradient_to,
+      gradient_angle: design.gradient_angle,
+      gradient_animated: design.gradient_animated,
+      font_family: design.font_family,
+      font_weight: design.font_weight,
+      font_size: design.font_size,
+      layout: design.layout,
+      watermark: design.watermark
+    };
+  }
+
+  function importDesign() {
+    const design = designs.find((item) => item.id === selectedDesignId);
+    if (!design) return;
+    patch({ design_id: design.id, design: designConfigFrom(design) });
   }
 
   async function save(status = card.status) {
@@ -136,13 +173,21 @@ export function CardEditor({ initial }: Props) {
 
         <fieldset>
           <legend>Дизайн</legend>
-          <label><span>Пресет</span><select value={card.design.layout} onChange={(e) => applyPreset(e.target.value)}><option value="nexora_default">Nexora green</option><option value="white">White</option><option value="dark">Dark</option></select></label>
-          <label><span>Background type</span><select value={card.design.background_type} onChange={(e) => patchDesign("background_type", e.target.value)}><option value="solid">Цвет</option><option value="gradient">Градиент</option></select></label>
-          <label><span>Background</span><input value={card.design.background_value} onChange={(e) => patchDesign("background_value", e.target.value)} placeholder="#edffef or linear-gradient(...)" /></label>
-          <label><span>Card color</span><input type="color" value={card.design.card_color} onChange={(e) => patchDesign("card_color", e.target.value)} /></label>
-          <label><span>Button color</span><input type="color" value={card.design.button_color} onChange={(e) => patchDesign("button_color", e.target.value)} /></label>
-          <label><span>Text color</span><input type="color" value={card.design.text_color} onChange={(e) => patchDesign("text_color", e.target.value)} /></label>
-          <label className="checkbox"><input type="checkbox" checked={card.design.watermark} onChange={(e) => patchDesign("watermark", e.target.checked)} /> Watermark из лого</label>
+          {designs.length ? (
+            <>
+              <label><span>Импортировать дизайн</span><select value={selectedDesignId} onChange={(e) => setSelectedDesignId(e.target.value)}>{designs.map((design) => <option value={design.id} key={design.id}>{design.name}</option>)}</select></label>
+              <button type="button" className="secondary" onClick={importDesign}>Импортировать в карточку</button>
+              <p className="field-note">Цвета, фон, шрифт и анимация редактируются только в разделе «Дизайны».</p>
+            </>
+          ) : (
+            <p className="field-note">Создайте дизайн в разделе «Дизайны», затем импортируйте его в карточку.</p>
+          )}
+        </fieldset>
+
+        <fieldset>
+          <legend>VCF-кнопка</legend>
+          <label className="checkbox"><input type="checkbox" checked={card.vcf_button.enabled} onChange={(e) => patch({ vcf_button: { ...card.vcf_button, enabled: e.target.checked } })} /> Показывать кнопку VCF</label>
+          <label><span>Текст кнопки</span><input value={card.vcf_button.label} onChange={(e) => patch({ vcf_button: { ...card.vcf_button, label: e.target.value } })} /></label>
         </fieldset>
 
         {card.type === "store" ? (
@@ -174,7 +219,7 @@ export function CardEditor({ initial }: Props) {
         </fieldset>
       </section>
       <aside className="editor-preview">
-        <CardPreview card={card} defaultLogoUrl={settings.default_logo_url} />
+        <CardPreview card={card} defaultLogoUrl={settings.default_logo_url} vcfHref="#" />
       </aside>
     </div>
   );

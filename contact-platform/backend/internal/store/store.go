@@ -198,7 +198,7 @@ func (s *Store) GetPublicCardBySlug(ctx context.Context, slug string) (models.Ca
 }
 
 func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, error) {
-	phones, socials, design, fields := jsonValues(card)
+	phones, socials, design, vcfButton, fields := jsonValues(card)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return models.Card{}, err
@@ -208,11 +208,11 @@ func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, 
 	err = tx.QueryRow(ctx, `
 		INSERT INTO cards (
 			owner_id, slug, type, status, name, position, company, email, website, address,
-			phones, socials, photo_url, logo_url, hide_logo, design_id, design_config, custom_fields
+			phones, socials, photo_url, logo_url, hide_logo, design_id, design_config, vcf_button, custom_fields
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NULLIF($16,'')::uuid,$17,$18)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NULLIF($16,'')::uuid,$17,$18,$19)
 		RETURNING id::text, created_at, updated_at, published_at
-	`, card.OwnerID, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, fields).Scan(&card.ID, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt)
+	`, card.OwnerID, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields).Scan(&card.ID, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt)
 	if err != nil {
 		return models.Card{}, err
 	}
@@ -226,7 +226,7 @@ func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, 
 }
 
 func (s *Store) UpdateCard(ctx context.Context, id string, card models.Card) (models.Card, error) {
-	phones, socials, design, fields := jsonValues(card)
+	phones, socials, design, vcfButton, fields := jsonValues(card)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return models.Card{}, err
@@ -238,9 +238,9 @@ func (s *Store) UpdateCard(ctx context.Context, id string, card models.Card) (mo
 		SET slug=$2, type=$3, status=$4, name=$5, position=$6, company=$7, email=$8,
 		    website=$9, address=$10, phones=$11, socials=$12, photo_url=$13, logo_url=$14,
 		    hide_logo=$15, design_id=NULLIF($16,'')::uuid, design_config=$17,
-		    custom_fields=$18, updated_at=now()
+		    vcf_button=$18, custom_fields=$19, updated_at=now()
 		WHERE id=$1
-	`, id, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, fields)
+	`, id, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields)
 	if err != nil {
 		return models.Card{}, err
 	}
@@ -287,7 +287,7 @@ func (s *Store) SetCardStatus(ctx context.Context, id, status string) (models.Ca
 }
 
 func (s *Store) ListDesigns(ctx context.Context) ([]models.Design, error) {
-	rows, err := s.db.Query(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, layout, watermark, created_at, updated_at FROM designs ORDER BY updated_at DESC`)
+	rows, err := s.db.Query(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs ORDER BY updated_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -297,8 +297,8 @@ func (s *Store) ListDesigns(ctx context.Context) ([]models.Design, error) {
 
 func (s *Store) GetDesign(ctx context.Context, id string) (models.Design, error) {
 	var out models.Design
-	err := s.db.QueryRow(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, layout, watermark, created_at, updated_at FROM designs WHERE id=$1`, id).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+	err := s.db.QueryRow(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs WHERE id=$1`, id).
+		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
@@ -308,11 +308,11 @@ func (s *Store) GetDesign(ctx context.Context, id string) (models.Design, error)
 func (s *Store) CreateDesign(ctx context.Context, design models.Design) (models.Design, error) {
 	var out models.Design
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO designs (owner_id, name, background_type, background_value, card_color, button_color, text_color, layout, watermark)
-		VALUES (NULLIF($1,'')::uuid,$2,$3,$4,$5,$6,$7,$8,$9)
-		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, layout, watermark, created_at, updated_at
-	`, design.OwnerID, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), defaultString(design.Layout, "nexora_default"), design.Watermark).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+		INSERT INTO designs (owner_id, name, background_type, background_value, card_color, button_color, text_color, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark)
+		VALUES (NULLIF($1,'')::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
+	`, design.OwnerID, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
+		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
 	return out, err
 }
 
@@ -320,11 +320,13 @@ func (s *Store) UpdateDesign(ctx context.Context, id string, design models.Desig
 	var out models.Design
 	err := s.db.QueryRow(ctx, `
 		UPDATE designs
-		SET name=$2, background_type=$3, background_value=$4, card_color=$5, button_color=$6, text_color=$7, layout=$8, watermark=$9, updated_at=now()
+		SET name=$2, background_type=$3, background_value=$4, card_color=$5, button_color=$6, text_color=$7,
+		    gradient_from=$8, gradient_to=$9, gradient_angle=$10, gradient_animated=$11,
+		    font_family=$12, font_weight=$13, font_size=$14, layout=$15, watermark=$16, updated_at=now()
 		WHERE id=$1
-		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, layout, watermark, created_at, updated_at
-	`, id, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), defaultString(design.Layout, "nexora_default"), design.Watermark).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
+	`, id, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
+		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
@@ -347,7 +349,7 @@ func cardSelect() string {
 		SELECT cards.id::text, cards.owner_id::text, cards.slug, cards.type, cards.status,
 		       cards.name, cards.position, cards.company, cards.email, cards.website, cards.address,
 		       cards.phones, cards.socials, cards.photo_url, cards.logo_url, cards.hide_logo,
-		       COALESCE(cards.design_id::text,''), cards.design_config, cards.custom_fields,
+		       COALESCE(cards.design_id::text,''), cards.design_config, cards.vcf_button, cards.custom_fields,
 		       cards.created_at, cards.updated_at, cards.published_at
 		FROM cards`
 }
@@ -356,13 +358,14 @@ func scanCards(rows pgx.Rows) ([]models.Card, error) {
 	cards := []models.Card{}
 	for rows.Next() {
 		var card models.Card
-		var phonesJSON, socialsJSON, designJSON, fieldsJSON []byte
-		if err := rows.Scan(&card.ID, &card.OwnerID, &card.Slug, &card.Type, &card.Status, &card.Name, &card.Position, &card.Company, &card.Email, &card.Website, &card.Address, &phonesJSON, &socialsJSON, &card.PhotoURL, &card.LogoURL, &card.HideLogo, &card.DesignID, &designJSON, &fieldsJSON, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt); err != nil {
+		var phonesJSON, socialsJSON, designJSON, vcfButtonJSON, fieldsJSON []byte
+		if err := rows.Scan(&card.ID, &card.OwnerID, &card.Slug, &card.Type, &card.Status, &card.Name, &card.Position, &card.Company, &card.Email, &card.Website, &card.Address, &phonesJSON, &socialsJSON, &card.PhotoURL, &card.LogoURL, &card.HideLogo, &card.DesignID, &designJSON, &vcfButtonJSON, &fieldsJSON, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(phonesJSON, &card.Phones)
 		_ = json.Unmarshal(socialsJSON, &card.Socials)
 		_ = json.Unmarshal(designJSON, &card.Design)
+		_ = json.Unmarshal(vcfButtonJSON, &card.VCFButton)
 		_ = json.Unmarshal(fieldsJSON, &card.CustomFields)
 		if card.Phones == nil {
 			card.Phones = []string{}
@@ -370,6 +373,8 @@ func scanCards(rows pgx.Rows) ([]models.Card, error) {
 		if card.CustomFields == nil {
 			card.CustomFields = []models.CustomField{}
 		}
+		card.Design = normalizeDesignConfig(card.Design)
+		card.VCFButton = normalizeVCFButton(card.VCFButton)
 		cards = append(cards, card)
 	}
 	return cards, rows.Err()
@@ -416,19 +421,20 @@ func replaceProducts(ctx context.Context, tx pgx.Tx, cardID string, products []m
 	return nil
 }
 
-func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte) {
+func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte, []byte) {
 	phones, _ := json.Marshal(card.Phones)
 	socials, _ := json.Marshal(card.Socials)
-	design, _ := json.Marshal(card.Design)
+	design, _ := json.Marshal(normalizeDesignConfig(card.Design))
+	vcfButton, _ := json.Marshal(normalizeVCFButton(card.VCFButton))
 	fields, _ := json.Marshal(card.CustomFields)
-	return phones, socials, design, fields
+	return phones, socials, design, vcfButton, fields
 }
 
 func scanDesigns(rows pgx.Rows) ([]models.Design, error) {
 	designs := []models.Design{}
 	for rows.Next() {
 		var design models.Design
-		if err := rows.Scan(&design.ID, &design.OwnerID, &design.Name, &design.BackgroundType, &design.BackgroundValue, &design.CardColor, &design.ButtonColor, &design.TextColor, &design.Layout, &design.Watermark, &design.CreatedAt, &design.UpdatedAt); err != nil {
+		if err := rows.Scan(&design.ID, &design.OwnerID, &design.Name, &design.BackgroundType, &design.BackgroundValue, &design.CardColor, &design.ButtonColor, &design.TextColor, &design.GradientFrom, &design.GradientTo, &design.GradientAngle, &design.GradientAnimated, &design.FontFamily, &design.FontWeight, &design.FontSize, &design.Layout, &design.Watermark, &design.CreatedAt, &design.UpdatedAt); err != nil {
 			return nil, err
 		}
 		designs = append(designs, design)
@@ -441,4 +447,36 @@ func defaultString(value, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func positiveInt(value, fallback int) int {
+	if value > 0 {
+		return value
+	}
+	return fallback
+}
+
+func normalizeDesignConfig(design models.DesignConfig) models.DesignConfig {
+	design.BackgroundType = defaultString(design.BackgroundType, "solid")
+	design.BackgroundValue = defaultString(design.BackgroundValue, "#edffef")
+	design.CardColor = defaultString(design.CardColor, "#edffef")
+	design.ButtonColor = defaultString(design.ButtonColor, "#0a844a")
+	design.TextColor = defaultString(design.TextColor, "#030609")
+	design.GradientFrom = defaultString(design.GradientFrom, design.BackgroundValue)
+	design.GradientTo = defaultString(design.GradientTo, design.ButtonColor)
+	design.GradientAngle = positiveInt(design.GradientAngle, 135)
+	design.FontFamily = defaultString(design.FontFamily, "system")
+	design.FontWeight = positiveInt(design.FontWeight, 700)
+	design.FontSize = positiveInt(design.FontSize, 100)
+	design.Layout = defaultString(design.Layout, "custom")
+	return design
+}
+
+func normalizeVCFButton(button models.VCFButton) models.VCFButton {
+	if strings.TrimSpace(button.Label) == "" {
+		button.Label = "Скачать VCF"
+		button.Enabled = true
+	}
+	button.Label = strings.TrimSpace(button.Label)
+	return button
 }

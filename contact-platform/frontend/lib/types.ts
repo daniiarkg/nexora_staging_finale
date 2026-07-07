@@ -27,8 +27,20 @@ export type DesignConfig = {
   card_color: string;
   button_color: string;
   text_color: string;
+  gradient_from: string;
+  gradient_to: string;
+  gradient_angle: number;
+  gradient_animated: boolean;
+  font_family: "system" | "serif" | "mono" | "rounded";
+  font_weight: number;
+  font_size: number;
   layout: string;
   watermark: boolean;
+};
+
+export type VCFButton = {
+  enabled: boolean;
+  label: string;
 };
 
 export type Card = {
@@ -53,7 +65,9 @@ export type Card = {
   photo_url: string;
   logo_url: string;
   hide_logo: boolean;
+  design_id?: string;
   design: DesignConfig;
+  vcf_button: VCFButton;
   custom_fields: CustomField[];
   products: Product[];
 };

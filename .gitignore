@@ -1,0 +1,13 @@
+node_modules/
+.next/
+dist/
+build/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+next-site/data/

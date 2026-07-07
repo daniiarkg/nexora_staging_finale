@@ -14,6 +14,28 @@ services:
       timeout: 5s
       retries: 5
 
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+      - --save
+      - "60"
+      - "1000"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - contacts_valkey:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -29,6 +51,7 @@ services:
       MIGRATIONS_DIR: /app/migrations
       PUBLIC_BASE_URL: https://contact.nexora.kg
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379/0}
       STORAGE_DIR: /data
       CORS_ORIGINS: https://contact.nexora.kg
     ports:
@@ -37,6 +60,8 @@ services:
       - contacts_uploads:/data
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health"]
@@ -59,3 +84,4 @@ services:
 volumes:
   contacts_postgres:
   contacts_uploads:
+  contacts_valkey:

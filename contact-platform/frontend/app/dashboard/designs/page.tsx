@@ -21,7 +21,7 @@ export default function DesignsPage() {
         <div className="list">
           {designs.map((design) => (
             <article className="list-item" key={design.id}>
-              <div><b>{design.name}</b><span>{design.layout} · {design.background_type}</span></div>
+              <div><b>{design.name}</b><span>{design.background_type === "gradient" ? "Градиент" : "Цвет"} · {design.font_family} · {design.font_weight}</span></div>
               <Link className="button secondary compact" href={`/dashboard/designs/${design.id}/edit`}>Edit</Link>
             </article>
           ))}

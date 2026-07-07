@@ -21,5 +21,5 @@ export default async function PublicCardPage({ params }: { params: Promise<{ slu
   const { slug } = await params;
   const [card, settings] = await Promise.all([getPublicCard(slug), getSettings()]);
   if (!card) return <main className="panel">Карточка не найдена или не опубликована.</main>;
-  return <main className="public-card-page"><CardPreview card={card} defaultLogoUrl={settings.default_logo_url} /><p className="vcf-line"><a className="button" href={`/api/public/cards/${card.slug}/vcf`}>Скачать VCF</a></p></main>;
+  return <main className="public-card-page"><CardPreview card={card} defaultLogoUrl={settings.default_logo_url} vcfHref={`/api/public/cards/${card.slug}/vcf`} /></main>;
 }

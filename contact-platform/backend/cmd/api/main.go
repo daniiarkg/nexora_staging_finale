@@ -16,14 +16,16 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"nexora/contact-platform/backend/internal/auth"
 	"nexora/contact-platform/backend/internal/config"
 	"nexora/contact-platform/backend/internal/db"
 	"nexora/contact-platform/backend/internal/httpx"
 	"nexora/contact-platform/backend/internal/models"
+	"nexora/contact-platform/backend/internal/ratelimit"
 	"nexora/contact-platform/backend/internal/store"
 	"nexora/contact-platform/backend/internal/vcf"
 )
@@ -32,13 +34,32 @@ type app struct {
 	cfg        config.Config
 	store      *store.Store
 	logger     *slog.Logger
-	authLimits *rateLimiter
+	authLimits *ratelimit.Limiter
 }
 
 func main() {
 	ctx := context.Background()
 	cfg := config.Load()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if err := cfg.ValidateAuth(); err != nil {
+		logger.Error("invalid_auth_config", "error", err)
+		os.Exit(1)
+	}
+	if err := cfg.ValidateValkey(); err != nil {
+		logger.Error("invalid_valkey_config", "error", err)
+		os.Exit(1)
+	}
+
+	valkeyClient, err := newValkeyClient(cfg.ValkeyURL)
+	if err != nil {
+		logger.Error("valkey_config_failed", "error", err)
+		os.Exit(1)
+	}
+	defer valkeyClient.Close()
+	if err := valkeyClient.Ping(ctx).Err(); err != nil {
+		logger.Error("valkey_ping_failed", "error", err)
+		os.Exit(1)
+	}
 
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -62,17 +83,18 @@ func main() {
 		logger.Error("root_seed_failed", "error", err)
 		os.Exit(1)
 	}
-	if err := st.EnsureDesignPresets(ctx); err != nil {
-		logger.Error("design_seed_failed", "error", err)
-		os.Exit(1)
-	}
 
 	if err := os.MkdirAll(filepath.Join(cfg.StorageDir, "uploads"), 0o755); err != nil {
 		logger.Error("storage_failed", "error", err)
 		os.Exit(1)
 	}
 
-	a := &app{cfg: cfg, store: st, logger: logger, authLimits: newRateLimiter(20, time.Minute)}
+	a := &app{
+		cfg:        cfg,
+		store:      st,
+		logger:     logger,
+		authLimits: ratelimit.New(valkeyClient, "nexora_contacts:auth", cfg.AuthRateLimit, cfg.AuthRateWindow),
+	}
 	server := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           a.withCORS(http.HandlerFunc(a.route)),
@@ -91,6 +113,13 @@ func (a *app) route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/health" {
+		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+		defer cancel()
+		if err := a.authLimits.Ping(ctx); err != nil {
+			a.logger.Error("valkey_health_failed", "error", err)
+			httpx.Error(w, http.StatusServiceUnavailable, "unhealthy")
+			return
+		}
 		httpx.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 		return
 	}
@@ -411,6 +440,8 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	card.Phones = cleanStrings(card.Phones, 8)
 	card.Products = normalizeProducts(card.Products)
 	card.CustomFields = normalizeFields(card.CustomFields)
+	card.Design = normalizeDesign(card.Design)
+	card.VCFButton = normalizeVCFButton(card.VCFButton)
 	if card.Name == "" || len(card.Phones) == 0 || (card.Type == models.CardTypePerson && card.Position == "") {
 		httpx.Error(w, http.StatusBadRequest, "missing_required_fields")
 		return card, false
@@ -462,7 +493,13 @@ func (a *app) withCORS(next http.Handler) http.Handler {
 }
 
 func (a *app) rateLimited(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	if !a.authLimits.Allow(clientIP(r)) {
+	allowed, err := a.authLimits.Allow(r.Context(), clientIP(r))
+	if err != nil {
+		a.logger.Error("rate_limit_failed", "error", err)
+		httpx.Error(w, http.StatusServiceUnavailable, "rate_limit_unavailable")
+		return
+	}
+	if !allowed {
 		httpx.Error(w, http.StatusTooManyRequests, "rate_limited")
 		return
 	}
@@ -550,6 +587,37 @@ func normalizeFields(fields []models.CustomField) []models.CustomField {
 	return out
 }
 
+func normalizeDesign(design models.DesignConfig) models.DesignConfig {
+	design.BackgroundType = defaultString(design.BackgroundType, "solid")
+	design.BackgroundValue = defaultString(design.BackgroundValue, "#edffef")
+	design.CardColor = defaultString(design.CardColor, "#edffef")
+	design.ButtonColor = defaultString(design.ButtonColor, "#0a844a")
+	design.TextColor = defaultString(design.TextColor, "#030609")
+	design.GradientFrom = defaultString(design.GradientFrom, design.BackgroundValue)
+	design.GradientTo = defaultString(design.GradientTo, design.ButtonColor)
+	if design.GradientAngle <= 0 {
+		design.GradientAngle = 135
+	}
+	design.FontFamily = defaultString(design.FontFamily, "system")
+	if design.FontWeight <= 0 {
+		design.FontWeight = 700
+	}
+	if design.FontSize <= 0 {
+		design.FontSize = 100
+	}
+	design.Layout = defaultString(design.Layout, "custom")
+	return design
+}
+
+func normalizeVCFButton(button models.VCFButton) models.VCFButton {
+	if strings.TrimSpace(button.Label) == "" {
+		button.Label = "Скачать VCF"
+		button.Enabled = true
+	}
+	button.Label = strings.TrimSpace(button.Label)
+	return button
+}
+
 func cleanStrings(values []string, limit int) []string {
 	out := []string{}
 	for _, value := range values {
@@ -598,40 +666,33 @@ func randomHex(size int) string {
 	return hex.EncodeToString(buf)
 }
 
+func newValkeyClient(rawURL string) (*redis.Client, error) {
+	options, err := redis.ParseURL(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	options.DialTimeout = 2 * time.Second
+	options.ReadTimeout = time.Second
+	options.WriteTimeout = time.Second
+	options.PoolSize = 10
+	options.MinIdleConns = 2
+	return redis.NewClient(options), nil
+}
+
 func clientIP(r *http.Request) string {
+	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		for _, part := range strings.Split(forwardedFor, ",") {
+			if ip := strings.TrimSpace(part); ip != "" {
+				return ip
+			}
+		}
+	}
+	if realIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); realIP != "" {
+		return realIP
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
 	}
 	return host
-}
-
-type rateLimiter struct {
-	mu     sync.Mutex
-	limit  int
-	window time.Duration
-	hits   map[string][]time.Time
-}
-
-func newRateLimiter(limit int, window time.Duration) *rateLimiter {
-	return &rateLimiter{limit: limit, window: window, hits: map[string][]time.Time{}}
-}
-
-func (r *rateLimiter) Allow(key string) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	now := time.Now()
-	cutoff := now.Add(-r.window)
-	hits := r.hits[key][:0]
-	for _, hit := range r.hits[key] {
-		if hit.After(cutoff) {
-			hits = append(hits, hit)
-		}
-	}
-	if len(hits) >= r.limit {
-		r.hits[key] = hits
-		return false
-	}
-	r.hits[key] = append(hits, now)
-	return true
 }

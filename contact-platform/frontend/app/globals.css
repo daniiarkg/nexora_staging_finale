@@ -419,6 +419,19 @@ legend {
   gap: 8px;
 }
 
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .checkbox {
   display: flex;
   align-items: center;
@@ -482,6 +495,16 @@ legend {
   padding: 28px;
 }
 
+.preview-stage.is-animated-gradient {
+  background-size: 180% 180% !important;
+  animation: cardGradientMove 10s ease-in-out infinite alternate;
+}
+
+@keyframes cardGradientMove {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
 .preview-card {
   position: relative;
   overflow: hidden;
@@ -490,6 +513,7 @@ legend {
   border-radius: 8px;
   padding: 26px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, .14);
+  font-family: var(--card-font-family, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
 }
 
 .preview-card-bg {
@@ -564,7 +588,8 @@ legend {
 
 .preview-card h1 {
   margin: 0;
-  font-size: clamp(32px, 7vw, 54px);
+  font-size: clamp(calc(32px * var(--card-font-scale, 1)), 7vw, calc(54px * var(--card-font-scale, 1)));
+  font-weight: var(--card-font-weight, 700);
   line-height: .98;
   overflow-wrap: anywhere;
 }
@@ -637,6 +662,7 @@ legend {
 
 .preview-actions b {
   overflow-wrap: anywhere;
+  font-weight: var(--card-font-weight, 700);
 }
 
 .vcf-line {
@@ -696,7 +722,7 @@ legend {
     display: grid;
   }
 
-  .quick-grid, .preview-products {
+  .quick-grid, .preview-products, .control-grid {
     grid-template-columns: 1fr;
   }
 

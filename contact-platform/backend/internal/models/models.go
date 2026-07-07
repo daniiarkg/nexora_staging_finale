@@ -37,13 +37,25 @@ type CustomField struct {
 }
 
 type DesignConfig struct {
-	BackgroundType  string `json:"background_type"`
-	BackgroundValue string `json:"background_value"`
-	CardColor       string `json:"card_color"`
-	ButtonColor     string `json:"button_color"`
-	TextColor       string `json:"text_color"`
-	Layout          string `json:"layout"`
-	Watermark       bool   `json:"watermark"`
+	BackgroundType   string `json:"background_type"`
+	BackgroundValue  string `json:"background_value"`
+	CardColor        string `json:"card_color"`
+	ButtonColor      string `json:"button_color"`
+	TextColor        string `json:"text_color"`
+	GradientFrom     string `json:"gradient_from"`
+	GradientTo       string `json:"gradient_to"`
+	GradientAngle    int    `json:"gradient_angle"`
+	GradientAnimated bool   `json:"gradient_animated"`
+	FontFamily       string `json:"font_family"`
+	FontWeight       int    `json:"font_weight"`
+	FontSize         int    `json:"font_size"`
+	Layout           string `json:"layout"`
+	Watermark        bool   `json:"watermark"`
+}
+
+type VCFButton struct {
+	Enabled bool   `json:"enabled"`
+	Label   string `json:"label"`
 }
 
 type Card struct {
@@ -65,6 +77,7 @@ type Card struct {
 	HideLogo     bool          `json:"hide_logo"`
 	DesignID     string        `json:"design_id,omitempty"`
 	Design       DesignConfig  `json:"design"`
+	VCFButton    VCFButton     `json:"vcf_button"`
 	CustomFields []CustomField `json:"custom_fields"`
 	Products     []Product     `json:"products,omitempty"`
 	CreatedAt    time.Time     `json:"created_at"`
@@ -84,18 +97,25 @@ type Product struct {
 }
 
 type Design struct {
-	ID              string    `json:"id"`
-	OwnerID         string    `json:"owner_id,omitempty"`
-	Name            string    `json:"name"`
-	BackgroundType  string    `json:"background_type"`
-	BackgroundValue string    `json:"background_value"`
-	CardColor       string    `json:"card_color"`
-	ButtonColor     string    `json:"button_color"`
-	TextColor       string    `json:"text_color"`
-	Layout          string    `json:"layout"`
-	Watermark       bool      `json:"watermark"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	OwnerID          string    `json:"owner_id,omitempty"`
+	Name             string    `json:"name"`
+	BackgroundType   string    `json:"background_type"`
+	BackgroundValue  string    `json:"background_value"`
+	CardColor        string    `json:"card_color"`
+	ButtonColor      string    `json:"button_color"`
+	TextColor        string    `json:"text_color"`
+	GradientFrom     string    `json:"gradient_from"`
+	GradientTo       string    `json:"gradient_to"`
+	GradientAngle    int       `json:"gradient_angle"`
+	GradientAnimated bool      `json:"gradient_animated"`
+	FontFamily       string    `json:"font_family"`
+	FontWeight       int       `json:"font_weight"`
+	FontSize         int       `json:"font_size"`
+	Layout           string    `json:"layout"`
+	Watermark        bool      `json:"watermark"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
 }
 
 type AppSettings struct {

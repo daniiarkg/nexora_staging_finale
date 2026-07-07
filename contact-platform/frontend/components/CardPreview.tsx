@@ -19,6 +19,7 @@ export function emptyCard(): Card {
     logo_url: "",
     hide_logo: false,
     design: { ...defaultDesign },
+    vcf_button: { enabled: true, label: "Скачать VCF" },
     custom_fields: [],
     products: []
   };
@@ -65,26 +66,51 @@ function socialActions(card: Card) {
 type CardPreviewProps = {
   card: Card;
   defaultLogoUrl?: string;
+  vcfHref?: string;
 };
 
-export function CardPreview({ card, defaultLogoUrl = "" }: CardPreviewProps) {
-  const design = card.design || defaultDesign;
-  const background = design.background_type === "gradient" ? design.background_value : design.background_value || "#edffef";
+function backgroundValue(design: Card["design"]) {
+  if (design.background_type === "gradient") {
+    const from = design.gradient_from || design.background_value || "#edffef";
+    const to = design.gradient_to || design.button_color || "#0a844a";
+    return `linear-gradient(${design.gradient_angle || 135}deg, ${from}, ${to})`;
+  }
+  return design.background_value || "#edffef";
+}
+
+function fontFamily(value: Card["design"]["font_family"]) {
+  const families = {
+    system: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    serif: "Georgia, \"Times New Roman\", serif",
+    mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+    rounded: "ui-rounded, \"Avenir Next\", \"Nunito\", \"Segoe UI\", sans-serif"
+  };
+  return families[value] || families.system;
+}
+
+export function CardPreview({ card, defaultLogoUrl = "", vcfHref = "" }: CardPreviewProps) {
+  const design = { ...defaultDesign, ...(card.design || {}) };
+  const background = backgroundValue(design);
   const logo = card.hide_logo ? "" : card.logo_url || defaultLogoUrl || "/nexora-text-logo.svg";
   const watermark = design.watermark && logo ? logo : "";
   const phones = card.phones || [];
   const products = card.products || [];
   const customFields = card.custom_fields || [];
   const socials = socialActions(card);
+  const vcfButton = card.vcf_button || { enabled: true, label: "Скачать VCF" };
+  const fontScale = Math.min(Math.max(design.font_size || 100, 82), 122) / 100;
   return (
-    <section className="preview-stage" data-layout={design.layout} style={{ background }}>
+    <section className={`preview-stage${design.background_type === "gradient" && design.gradient_animated ? " is-animated-gradient" : ""}`} data-layout={design.layout} style={{ background }}>
       <article
         className="preview-card"
         data-card-type={card.type}
         style={{
           background: design.card_color || "#edffef",
           color: design.text_color || "#030609",
-          "--button-color": design.button_color || "#0a844a"
+          "--button-color": design.button_color || "#0a844a",
+          "--card-font-family": fontFamily(design.font_family),
+          "--card-font-scale": String(fontScale),
+          "--card-font-weight": String(design.font_weight || 700)
         } as CSSProperties & Record<string, string>}
       >
         <div className="preview-card-bg">
@@ -115,6 +141,12 @@ export function CardPreview({ card, defaultLogoUrl = "" }: CardPreviewProps) {
           </div>
         ) : null}
         <div className="preview-actions">
+          {vcfButton.enabled ? (
+            <a href={vcfHref || undefined}>
+              <span>VCF</span>
+              <b>{vcfButton.label || "Скачать VCF"}</b>
+            </a>
+          ) : null}
           {phones.filter(Boolean).map((phone, index) => (
             <a key={`${phone}-${index}`} href={`tel:${phone}`}>
               <span>Phone {index ? index + 1 : ""}</span>

@@ -1,18 +1,29 @@
 services:
   nexora-site:
-    image: nginx:alpine
+    build:
+      context: /root/nexora/next-site
     container_name: nexora-site
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8081:80"
+      - "127.0.0.1:8081:3000"
+    environment:
+      ADMIN_USER: root
+      ADMIN_PASSWORD: root$$root124
+      CONTENT_DIR: /app/data
     volumes:
-      - /var/www/nexora:/usr/share/nginx/html:ro
+      - /var/lib/nexora-next:/app/data
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "Promise.all(['/', '/courses', '/consulting', '/nfc-cards', '/documents'].map((path) => fetch('http://127.0.0.1:3000' + path))).then((responses) => process.exit(responses.every((response) => response.ok) ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
   nexora-api:
     build:
@@ -45,168 +56,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  nexora-shop-redis:
-    image: redis:7-alpine
-    container_name: nexora-shop-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - nexora_shop_redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  nexora-shop-postgres:
-    image: postgres:16-alpine
-    container_name: nexora-shop-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: nexora_shop
-      POSTGRES_PASSWORD_FILE: /run/secrets/nexora_shop_postgres_password
-      POSTGRES_USER: nexora
-    secrets:
-      - nexora_shop_postgres_password
-    volumes:
-      - nexora_shop_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  nexora-shop-elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
-    container_name: nexora-shop-elasticsearch
-    restart: unless-stopped
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      ES_JAVA_OPTS: -Xms384m -Xmx384m
-    volumes:
-      - nexora_shop_elasticsearch_data:/usr/share/elasticsearch/data
-    mem_limit: 1g
-    cpus: 1.0
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -fsS 'http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=2s' >/dev/null || exit 1",
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
-
-  nexora-shop-api:
-    build:
-      context: /root/nexora/shop/backend
-    container_name: nexora-shop-api
-    restart: unless-stopped
-    environment:
-      API_PREFIX: /api
-      APP_NAME: Nexora Shop API
-      AUTH_COOKIE_SECURE: "true"
-      AUTO_CREATE_TABLES: "false"
-      BACKEND_CORS_ORIGINS: https://shop.nexora.kg
-      DATABASE_URL_FILE: /run/secrets/nexora_shop_database_url
-      ELASTICSEARCH_URL: http://nexora-shop-elasticsearch:9200
-      ENABLE_DOCS: "false"
-      ENVIRONMENT: production
-      JWT_EXPIRES_MINUTES: "43200"
-      JWT_SECRET_FILE: /run/secrets/nexora_shop_jwt_secret
-      RATE_LIMIT_ENABLED: "true"
-      RUN_MIGRATIONS: "true"
-      REDIS_URL: redis://nexora-shop-redis:6379/0
-      SUPERUSER_EMAIL: root@shop.nexora.kg
-      SUPERUSER_PASSWORD_FILE: /run/secrets/nexora_shop_superuser_password
-      SUPERUSER_USERNAME: root
-      TRUSTED_HOSTS: shop.nexora.kg,nexora-shop-api,backend,localhost,127.0.0.1
-    secrets:
-      - nexora_shop_database_url
-      - nexora_shop_jwt_secret
-      - nexora_shop_superuser_password
-    ports:
-      - "127.0.0.1:8003:8000"
-    depends_on:
-      nexora-shop-postgres:
-        condition: service_healthy
-      nexora-shop-redis:
-        condition: service_healthy
-      nexora-shop-elasticsearch:
-        condition: service_healthy
-    mem_limit: 512m
-    cpus: 1.0
-    pids_limit: 256
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()",
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  nexora-shop-web:
-    build:
-      context: /root/nexora/shop/frontend
-      args:
-        NEXT_PUBLIC_API_URL: /api
-    container_name: nexora-shop-web
-    restart: unless-stopped
-    environment:
-      HOSTNAME: 0.0.0.0
-      INTERNAL_API_URL: http://nexora-shop-api:8000/api
-      NODE_ENV: production
-      PORT: 3000
-    ports:
-      - "127.0.0.1:3003:3000"
-    depends_on:
-      nexora-shop-api:
-        condition: service_healthy
-    mem_limit: 512m
-    cpus: 1.0
-    pids_limit: 256
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:' + (process.env.PORT || 3000)).then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-volumes:
-  nexora_shop_redis_data:
-  nexora_shop_postgres_data:
-  nexora_shop_elasticsearch_data:
-
-secrets:
-  nexora_shop_database_url:
-    file: /etc/nexora-shop/database_url
-  nexora_shop_jwt_secret:
-    file: /etc/nexora-shop/jwt_secret
-  nexora_shop_postgres_password:
-    file: /etc/nexora-shop/postgres_password
-  nexora_shop_superuser_password:
-    file: /etc/nexora-shop/superuser_password
