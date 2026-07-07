@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexora_contacts
+      POSTGRES_USER: nexora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - contacts_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexora -d nexora_contacts"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - path: ./.env
+        required: false
+      - path: /etc/nexora-contact.env
+        required: false
+    environment:
+      ADDR: :8080
+      DATABASE_URL: postgres://nexora:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/nexora_contacts?sslmode=disable
+      MIGRATIONS_DIR: /app/migrations
+      PUBLIC_BASE_URL: https://contact.nexora.kg
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      STORAGE_DIR: /data
+      CORS_ORIGINS: https://contact.nexora.kg
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - contacts_uploads:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_URL: http://backend:8080
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  contacts_postgres:
+  contacts_uploads:
