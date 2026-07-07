@@ -49,14 +49,14 @@ export function SettingsEditor() {
           <div>
             <p className="eyebrow">Brand settings</p>
             <h1>Дефолтное лого</h1>
-            <p className="section-copy">Используется на карточках без собственного лого. Персональные лого и опция “без лого” остаются приоритетнее.</p>
+            <p className="section-copy">Глобальное лого больше не подставляется в карточки. Лого отображается только если оно загружено в самой карточке.</p>
           </div>
           <button className="secondary" type="button" onClick={() => save({ default_logo_url: "" })} disabled={saving || !settings.default_logo_url}>Сбросить</button>
         </div>
         {error ? <p className="form-error">{error}</p> : null}
         <div className="settings-grid">
           <div className="brand-preview">
-            {settings.default_logo_url ? <img src={settings.default_logo_url} alt="Default logo" /> : <img src="/nexora-text-logo.svg" alt="Nexora" />}
+            {settings.default_logo_url ? <img src={settings.default_logo_url} alt="Default logo" /> : <span className="field-note">Глобальное лого не задано</span>}
           </div>
           <div className="settings-form">
             <label>
@@ -65,7 +65,7 @@ export function SettingsEditor() {
             </label>
             <label>
               <span>Текущий URL</span>
-              <input value={settings.default_logo_url || "Системное Nexora logo"} readOnly />
+              <input value={settings.default_logo_url} readOnly />
             </label>
           </div>
         </div>

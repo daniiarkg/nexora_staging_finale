@@ -65,7 +65,6 @@ function socialActions(card: Card) {
 
 type CardPreviewProps = {
   card: Card;
-  defaultLogoUrl?: string;
   vcfHref?: string;
 };
 
@@ -88,10 +87,10 @@ function fontFamily(value: Card["design"]["font_family"]) {
   return families[value] || families.system;
 }
 
-export function CardPreview({ card, defaultLogoUrl = "", vcfHref = "" }: CardPreviewProps) {
+export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const design = { ...defaultDesign, ...(card.design || {}) };
   const background = backgroundValue(design);
-  const logo = card.hide_logo ? "" : card.logo_url || defaultLogoUrl || "/nexora-text-logo.svg";
+  const logo = card.hide_logo ? "" : card.logo_url;
   const watermark = design.watermark && logo ? logo : "";
   const phones = card.phones || [];
   const products = card.products || [];
@@ -117,7 +116,7 @@ export function CardPreview({ card, defaultLogoUrl = "", vcfHref = "" }: CardPre
           {watermark ? <img className="preview-watermark" src={watermark} alt="" /> : null}
         </div>
         <header className="preview-header">
-          {!card.hide_logo ? <img className="preview-logo" src={logo || "/nexora-text-logo.svg"} alt="Logo" /> : <span className="preview-logo-placeholder" />}
+          {logo ? <img className="preview-logo" src={logo} alt="Logo" /> : <span className="preview-logo-placeholder" />}
           <span className="preview-status">{card.type === "store" ? "Store" : "Contact"}</span>
         </header>
         <div className="preview-identity">

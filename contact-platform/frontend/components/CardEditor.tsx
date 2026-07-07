@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
 import { apiFetch, uploadFile } from "@/lib/api";
-import type { AppSettings, Card, CustomField, Design, DesignConfig, Product } from "@/lib/types";
+import type { Card, CustomField, Design, DesignConfig, Product } from "@/lib/types";
 import { CardPreview, emptyCard } from "./CardPreview";
 
 type Props = {
@@ -29,12 +29,10 @@ export function CardEditor({ initial }: Props) {
   const [card, setCard] = useState<Card>(() => withCardDefaults(initial));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>({ default_logo_url: "" });
   const [designs, setDesigns] = useState<Design[]>([]);
   const [selectedDesignId, setSelectedDesignId] = useState(initial?.design_id || "");
 
   useEffect(() => {
-    apiFetch<{ settings: AppSettings }>("/api/settings").then((data) => setSettings(data.settings)).catch(() => undefined);
     apiFetch<{ designs: Design[] }>("/api/designs").then((data) => {
       setDesigns(data.designs);
       if (!selectedDesignId && data.designs[0]?.id) setSelectedDesignId(data.designs[0].id);
@@ -219,7 +217,7 @@ export function CardEditor({ initial }: Props) {
         </fieldset>
       </section>
       <aside className="editor-preview">
-        <CardPreview card={card} defaultLogoUrl={settings.default_logo_url} vcfHref="#" />
+        <CardPreview card={card} vcfHref="#" />
       </aside>
     </div>
   );
