@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { CardPreview } from "@/components/CardPreview";
 import { withSettingsDefaults } from "@/lib/settings";
-import type { AppSettings } from "@/lib/types";
+import type { AppSettings, User } from "@/lib/types";
 
 async function getSettings(): Promise<AppSettings> {
   const api = process.env.INTERNAL_API_URL || "http://localhost:8080";
@@ -11,8 +12,26 @@ async function getSettings(): Promise<AppSettings> {
   return withSettingsDefaults(data.settings);
 }
 
+async function getCurrentUser(): Promise<User | null> {
+  const api = process.env.INTERNAL_API_URL || "http://localhost:8080";
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+  if (!cookieHeader) return null;
+  const response = await fetch(`${api}/api/auth/me`, {
+    cache: "no-store",
+    headers: { Cookie: cookieHeader }
+  }).catch(() => undefined);
+  if (!response?.ok) return null;
+  const data = await response.json().catch(() => ({}));
+  return data.user || null;
+}
+
 export default async function HomePage() {
   const settings = await getSettings();
+  const user = await getCurrentUser();
+  const accountAction = user
+    ? { href: "/dashboard", label: "Dashboard" }
+    : { href: "/login", label: "Войти" };
   return (
     <main className="landing">
       <nav className="site-nav">
@@ -21,8 +40,7 @@ export default async function HomePage() {
           <span>Nexora Contacts</span>
         </Link>
         <div className="site-actions">
-          <Link href="/login">Войти</Link>
-          <Link className="button compact" href="/dashboard">Dashboard</Link>
+          <Link className="button compact" href={accountAction.href}>{accountAction.label}</Link>
         </div>
       </nav>
       <section className="hero">
@@ -31,8 +49,8 @@ export default async function HomePage() {
           <h1>{settings.landing_title}</h1>
           <p className="lead">{settings.landing_lead}</p>
           <div className="actions">
-            <Link className="button" href={settings.landing_primary_href}>{settings.landing_primary_label}</Link>
-            <Link className="button secondary" href={settings.landing_secondary_href}>{settings.landing_secondary_label}</Link>
+            <Link className="button" href={user ? accountAction.href : settings.landing_primary_href}>{user ? accountAction.label : settings.landing_primary_label}</Link>
+            {!user ? <Link className="button secondary" href={settings.landing_secondary_href}>{settings.landing_secondary_label}</Link> : null}
           </div>
           <div className="feature-row">
             {settings.landing_features.map((feature) => <span key={feature}>{feature}</span>)}
