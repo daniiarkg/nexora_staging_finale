@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"nexora/contact-platform/backend/internal/geo"
 	"nexora/contact-platform/backend/internal/models"
 )
 
@@ -21,6 +22,56 @@ type Store struct {
 
 func New(db *pgxpool.Pool) *Store {
 	return &Store{db: db}
+}
+
+func defaultAppSettings() models.AppSettings {
+	logo := "/nexora-text-logo.svg"
+	return models.AppSettings{
+		FaviconURL:            logo,
+		LandingLogoURL:        logo,
+		LandingEyebrow:        "Nexora Contacts",
+		LandingTitle:          "Контактные карточки и мини-витрины без лишней возни.",
+		LandingLead:           "Публичные ссылки, VCF, несколько телефонов, товары, кастомный дизайн и предпросмотр в одном аккуратном рабочем интерфейсе.",
+		LandingPrimaryLabel:   "Войти",
+		LandingPrimaryHref:    "/login",
+		LandingSecondaryLabel: "Регистрация",
+		LandingSecondaryHref:  "/register",
+		LandingFeatures:       []string{"Person cards", "Store catalog", "VCF export"},
+		LandingCard: models.Card{
+			Slug:          "demo",
+			Type:          models.CardTypePerson,
+			Status:        models.StatusPublished,
+			Name:          "Айбек Осмонов",
+			Position:      "AI Operations Consultant",
+			Company:       "Nexora Group",
+			Email:         "demo@nexora.kg",
+			Website:       "https://nexora.kg",
+			Address:       "Бишкек",
+			AddressGeoURI: "geo:42.8746,74.5698",
+			Phones:        []string{"+996 555 123 456"},
+			Socials:       models.Socials{Telegram: "https://t.me/nexora"},
+			Design: models.DesignConfig{
+				BackgroundType:   "solid",
+				BackgroundValue:  "#edffef",
+				CardColor:        "#edffef",
+				ButtonColor:      "#0a844a",
+				TextColor:        "#030609",
+				LogoURL:          logo,
+				GradientFrom:     "#edffef",
+				GradientTo:       "#0a844a",
+				GradientAngle:    135,
+				GradientAnimated: false,
+				FontFamily:       "system",
+				FontWeight:       700,
+				FontSize:         100,
+				Layout:           "custom",
+				Watermark:        true,
+			},
+			VCFButton:    models.VCFButton{Enabled: true, Label: "Сохранить контакт"},
+			CustomFields: []models.CustomField{{Label: "Office", Value: "Mon-Fri, 10:00-18:00", Type: "text"}},
+			Products:     []models.Product{},
+		},
+	}
 }
 
 func (s *Store) EnsureRoot(ctx context.Context, passwordHash string) error {
@@ -84,24 +135,99 @@ func (s *Store) EnsureDesignPresets(ctx context.Context) error {
 }
 
 func (s *Store) GetSettings(ctx context.Context) (models.AppSettings, error) {
-	settings := models.AppSettings{}
-	err := s.db.QueryRow(ctx, `SELECT value FROM app_settings WHERE key='default_logo_url'`).Scan(&settings.DefaultLogoURL)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return settings, nil
+	settings := defaultAppSettings()
+	rows, err := s.db.Query(ctx, `SELECT key, value FROM app_settings`)
+	if err != nil {
+		return settings, err
 	}
-	return settings, err
+	defer rows.Close()
+
+	values := map[string]string{}
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return settings, err
+		}
+		values[key] = value
+	}
+	if err := rows.Err(); err != nil {
+		return settings, err
+	}
+
+	settings.DefaultLogoURL = strings.TrimSpace(values["default_logo_url"])
+	if value, ok := values["favicon_url"]; ok {
+		settings.FaviconURL = value
+	}
+	if value, ok := values["landing_logo_url"]; ok {
+		settings.LandingLogoURL = value
+	} else if settings.DefaultLogoURL != "" {
+		settings.LandingLogoURL = settings.DefaultLogoURL
+	}
+	if value, ok := values["landing_eyebrow"]; ok {
+		settings.LandingEyebrow = value
+	}
+	if value, ok := values["landing_title"]; ok {
+		settings.LandingTitle = value
+	}
+	if value, ok := values["landing_lead"]; ok {
+		settings.LandingLead = value
+	}
+	if value, ok := values["landing_primary_label"]; ok {
+		settings.LandingPrimaryLabel = value
+	}
+	if value, ok := values["landing_primary_href"]; ok {
+		settings.LandingPrimaryHref = value
+	}
+	if value, ok := values["landing_secondary_label"]; ok {
+		settings.LandingSecondaryLabel = value
+	}
+	if value, ok := values["landing_secondary_href"]; ok {
+		settings.LandingSecondaryHref = value
+	}
+	if value := strings.TrimSpace(values["landing_features"]); value != "" {
+		_ = json.Unmarshal([]byte(value), &settings.LandingFeatures)
+	}
+	if value := strings.TrimSpace(values["landing_card"]); value != "" {
+		_ = json.Unmarshal([]byte(value), &settings.LandingCard)
+	}
+	return normalizeAppSettings(settings), nil
 }
 
 func (s *Store) UpdateSettings(ctx context.Context, settings models.AppSettings) (models.AppSettings, error) {
-	settings.DefaultLogoURL = strings.TrimSpace(settings.DefaultLogoURL)
-	_, err := s.db.Exec(ctx, `
-		INSERT INTO app_settings (key, value, updated_at)
-		VALUES ('default_logo_url', $1, now())
-		ON CONFLICT (key) DO UPDATE
-		SET value=EXCLUDED.value,
-		    updated_at=now()
-	`, settings.DefaultLogoURL)
+	settings = normalizeAppSettings(settings)
+	features, _ := json.Marshal(settings.LandingFeatures)
+	landingCard, _ := json.Marshal(settings.LandingCard)
+	values := map[string]string{
+		"favicon_url":             settings.FaviconURL,
+		"landing_logo_url":        settings.LandingLogoURL,
+		"landing_eyebrow":         settings.LandingEyebrow,
+		"landing_title":           settings.LandingTitle,
+		"landing_lead":            settings.LandingLead,
+		"landing_primary_label":   settings.LandingPrimaryLabel,
+		"landing_primary_href":    settings.LandingPrimaryHref,
+		"landing_secondary_label": settings.LandingSecondaryLabel,
+		"landing_secondary_href":  settings.LandingSecondaryHref,
+		"landing_features":        string(features),
+		"landing_card":            string(landingCard),
+	}
+
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
+		return models.AppSettings{}, err
+	}
+	defer tx.Rollback(ctx)
+	for key, value := range values {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO app_settings (key, value, updated_at)
+			VALUES ($1, $2, now())
+			ON CONFLICT (key) DO UPDATE
+			SET value=EXCLUDED.value,
+			    updated_at=now()
+		`, key, value); err != nil {
+			return models.AppSettings{}, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return models.AppSettings{}, err
 	}
 	return s.GetSettings(ctx)
@@ -207,12 +333,12 @@ func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, 
 
 	err = tx.QueryRow(ctx, `
 		INSERT INTO cards (
-			owner_id, slug, type, status, name, position, company, email, website, address,
+			owner_id, slug, type, status, name, position, company, email, website, address, address_geo_uri,
 			phones, socials, photo_url, logo_url, hide_logo, design_id, design_config, vcf_button, custom_fields
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NULLIF($16,'')::uuid,$17,$18,$19)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NULLIF($17,'')::uuid,$18,$19,$20)
 		RETURNING id::text, created_at, updated_at, published_at
-	`, card.OwnerID, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields).Scan(&card.ID, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt)
+	`, card.OwnerID, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, card.AddressGeoURI, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields).Scan(&card.ID, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt)
 	if err != nil {
 		return models.Card{}, err
 	}
@@ -236,11 +362,11 @@ func (s *Store) UpdateCard(ctx context.Context, id string, card models.Card) (mo
 	tag, err := tx.Exec(ctx, `
 		UPDATE cards
 		SET slug=$2, type=$3, status=$4, name=$5, position=$6, company=$7, email=$8,
-		    website=$9, address=$10, phones=$11, socials=$12, photo_url=$13, logo_url=$14,
-		    hide_logo=$15, design_id=NULLIF($16,'')::uuid, design_config=$17,
-		    vcf_button=$18, custom_fields=$19, updated_at=now()
+		    website=$9, address=$10, address_geo_uri=$11, phones=$12, socials=$13, photo_url=$14, logo_url=$15,
+		    hide_logo=$16, design_id=NULLIF($17,'')::uuid, design_config=$18,
+		    vcf_button=$19, custom_fields=$20, updated_at=now()
 		WHERE id=$1
-	`, id, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields)
+	`, id, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, card.AddressGeoURI, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields)
 	if err != nil {
 		return models.Card{}, err
 	}
@@ -347,7 +473,7 @@ func (s *Store) DeleteDesign(ctx context.Context, id string) error {
 func cardSelect() string {
 	return `
 		SELECT cards.id::text, cards.owner_id::text, cards.slug, cards.type, cards.status,
-		       cards.name, cards.position, cards.company, cards.email, cards.website, cards.address,
+		       cards.name, cards.position, cards.company, cards.email, cards.website, cards.address, cards.address_geo_uri,
 		       cards.phones, cards.socials, cards.photo_url, cards.logo_url, cards.hide_logo,
 		       COALESCE(cards.design_id::text,''), cards.design_config, cards.vcf_button, cards.custom_fields,
 		       cards.created_at, cards.updated_at, cards.published_at
@@ -359,7 +485,7 @@ func scanCards(rows pgx.Rows) ([]models.Card, error) {
 	for rows.Next() {
 		var card models.Card
 		var phonesJSON, socialsJSON, designJSON, vcfButtonJSON, fieldsJSON []byte
-		if err := rows.Scan(&card.ID, &card.OwnerID, &card.Slug, &card.Type, &card.Status, &card.Name, &card.Position, &card.Company, &card.Email, &card.Website, &card.Address, &phonesJSON, &socialsJSON, &card.PhotoURL, &card.LogoURL, &card.HideLogo, &card.DesignID, &designJSON, &vcfButtonJSON, &fieldsJSON, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt); err != nil {
+		if err := rows.Scan(&card.ID, &card.OwnerID, &card.Slug, &card.Type, &card.Status, &card.Name, &card.Position, &card.Company, &card.Email, &card.Website, &card.Address, &card.AddressGeoURI, &phonesJSON, &socialsJSON, &card.PhotoURL, &card.LogoURL, &card.HideLogo, &card.DesignID, &designJSON, &vcfButtonJSON, &fieldsJSON, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(phonesJSON, &card.Phones)
@@ -442,11 +568,75 @@ func scanDesigns(rows pgx.Rows) ([]models.Design, error) {
 	return designs, rows.Err()
 }
 
+func normalizeAppSettings(settings models.AppSettings) models.AppSettings {
+	defaults := defaultAppSettings()
+	settings.FaviconURL = defaultString(settings.FaviconURL, defaults.FaviconURL)
+	settings.LandingLogoURL = defaultString(settings.LandingLogoURL, defaults.LandingLogoURL)
+	settings.LandingEyebrow = defaultString(settings.LandingEyebrow, defaults.LandingEyebrow)
+	settings.LandingTitle = defaultString(settings.LandingTitle, defaults.LandingTitle)
+	settings.LandingLead = defaultString(settings.LandingLead, defaults.LandingLead)
+	settings.LandingPrimaryLabel = defaultString(settings.LandingPrimaryLabel, defaults.LandingPrimaryLabel)
+	settings.LandingPrimaryHref = defaultString(settings.LandingPrimaryHref, defaults.LandingPrimaryHref)
+	settings.LandingSecondaryLabel = defaultString(settings.LandingSecondaryLabel, defaults.LandingSecondaryLabel)
+	settings.LandingSecondaryHref = defaultString(settings.LandingSecondaryHref, defaults.LandingSecondaryHref)
+	settings.LandingFeatures = cleanSettingStrings(settings.LandingFeatures, 6)
+	if len(settings.LandingFeatures) == 0 {
+		settings.LandingFeatures = defaults.LandingFeatures
+	}
+
+	card := defaults.LandingCard
+	if strings.TrimSpace(settings.LandingCard.Name) != "" {
+		card = settings.LandingCard
+	}
+	card.Slug = defaultString(card.Slug, defaults.LandingCard.Slug)
+	card.Type = defaultString(card.Type, models.CardTypePerson)
+	card.Status = models.StatusPublished
+	card.Name = defaultString(card.Name, defaults.LandingCard.Name)
+	card.Position = strings.TrimSpace(card.Position)
+	card.Company = strings.TrimSpace(card.Company)
+	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
+	card.Website = strings.TrimSpace(card.Website)
+	card.Address = strings.TrimSpace(card.Address)
+	card.AddressGeoURI = geo.NormalizeURI(card.AddressGeoURI)
+	if card.AddressGeoURI == "" {
+		card.AddressGeoURI = geo.NormalizeURI(card.Address)
+	}
+	card.Phones = cleanSettingStrings(card.Phones, 8)
+	if len(card.Phones) == 0 {
+		card.Phones = defaults.LandingCard.Phones
+	}
+	card.Design = normalizeDesignConfig(card.Design)
+	card.Design.LogoURL = settings.LandingLogoURL
+	card.VCFButton = normalizeVCFButton(card.VCFButton)
+	if card.CustomFields == nil {
+		card.CustomFields = []models.CustomField{}
+	}
+	if card.Products == nil {
+		card.Products = []models.Product{}
+	}
+	settings.LandingCard = card
+	return settings
+}
+
 func defaultString(value, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback
 	}
 	return value
+}
+
+func cleanSettingStrings(values []string, limit int) []string {
+	out := []string{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			out = append(out, value)
+		}
+		if len(out) == limit {
+			break
+		}
+	}
+	return out
 }
 
 func positiveInt(value, fallback int) int {

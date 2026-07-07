@@ -3,6 +3,7 @@ package vcf
 import (
 	"strings"
 
+	"nexora/contact-platform/backend/internal/geo"
 	"nexora/contact-platform/backend/internal/models"
 )
 
@@ -30,6 +31,10 @@ func Render(card models.Card, publicURL string) string {
 	}
 	if card.Address != "" {
 		lines = append(lines, "ADR;TYPE=WORK:;;"+esc(card.Address)+";;;;")
+	}
+	if lat, lon, ok := geo.Coordinates(card.AddressGeoURI); ok {
+		lines = append(lines, "GEO:"+lat+";"+lon)
+		lines = append(lines, "URL;TYPE=MAP:"+card.AddressGeoURI)
 	}
 	for _, field := range card.CustomFields {
 		if field.Type == "link" && field.Value != "" {

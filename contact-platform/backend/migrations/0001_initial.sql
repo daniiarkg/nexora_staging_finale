@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS cards (
   email TEXT NOT NULL DEFAULT '',
   website TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
+  address_geo_uri TEXT NOT NULL DEFAULT '',
   phones JSONB NOT NULL DEFAULT '[]'::jsonb,
   socials JSONB NOT NULL DEFAULT '{}'::jsonb,
   photo_url TEXT NOT NULL DEFAULT '',

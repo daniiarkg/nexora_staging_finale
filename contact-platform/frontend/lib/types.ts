@@ -56,6 +56,7 @@ export type Card = {
   email: string;
   website: string;
   address: string;
+  address_geo_uri: string;
   phones: string[];
   socials: {
     instagram?: string;
@@ -79,5 +80,16 @@ export type Design = DesignConfig & {
 };
 
 export type AppSettings = {
-  default_logo_url: string;
+  default_logo_url?: string;
+  favicon_url: string;
+  landing_logo_url: string;
+  landing_eyebrow: string;
+  landing_title: string;
+  landing_lead: string;
+  landing_primary_label: string;
+  landing_primary_href: string;
+  landing_secondary_label: string;
+  landing_secondary_href: string;
+  landing_features: string[];
+  landing_card: Card;
 };

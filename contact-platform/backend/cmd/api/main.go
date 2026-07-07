@@ -23,6 +23,7 @@ import (
 	"nexora/contact-platform/backend/internal/auth"
 	"nexora/contact-platform/backend/internal/config"
 	"nexora/contact-platform/backend/internal/db"
+	"nexora/contact-platform/backend/internal/geo"
 	"nexora/contact-platform/backend/internal/httpx"
 	"nexora/contact-platform/backend/internal/models"
 	"nexora/contact-platform/backend/internal/ratelimit"
@@ -431,6 +432,10 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
 	card.Website = normalizeURL(card.Website)
 	card.Address = strings.TrimSpace(card.Address)
+	card.AddressGeoURI = geo.NormalizeURI(card.AddressGeoURI)
+	if card.AddressGeoURI == "" {
+		card.AddressGeoURI = geo.NormalizeURI(card.Address)
+	}
 	card.Type = defaultString(card.Type, models.CardTypePerson)
 	card.Status = defaultString(card.Status, models.StatusDraft)
 	card.Slug = slugify(card.Slug)

@@ -160,7 +160,8 @@ export function CardEditor({ initial }: Props) {
           <button type="button" onClick={() => patch({ phones: [...card.phones, ""] })}>Добавить номер</button>
           <label><span>Email</span><input value={card.email} onChange={(e) => patch({ email: e.target.value })} /></label>
           <label><span>Website</span><input value={card.website} onChange={(e) => patch({ website: e.target.value })} /></label>
-          <label><span>Address</span><input value={card.address} onChange={(e) => patch({ address: e.target.value })} /></label>
+          <label><span>Адрес для отображения</span><input value={card.address} onChange={(e) => patch({ address: e.target.value })} placeholder="Бишкек, ул. ..." /></label>
+          <label><span>2ГИС ссылка или geo URI</span><input value={card.address_geo_uri} onChange={(e) => patch({ address_geo_uri: e.target.value })} placeholder="https://2gis.kg/... или geo:42.8746,74.5698" /></label>
         </fieldset>
 
         <fieldset>

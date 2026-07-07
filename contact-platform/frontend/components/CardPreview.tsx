@@ -13,6 +13,7 @@ export function emptyCard(): Card {
     email: "",
     website: "",
     address: "",
+    address_geo_uri: "",
     phones: [""],
     socials: {},
     photo_url: "",
@@ -36,6 +37,7 @@ export function demoCard(): Card {
     email: "demo@nexora.kg",
     website: "https://nexora.kg",
     address: "Бишкек",
+    address_geo_uri: "geo:42.8746,74.5698",
     phones: ["+996 555 123 456"],
     socials: { telegram: "https://t.me/nexora" },
     custom_fields: [{ label: "Office", value: "Mon-Fri, 10:00-18:00", type: "text" }],
@@ -49,7 +51,8 @@ function externalHref(value: string) {
   return `https://${value}`;
 }
 
-function mapsHref(address: string) {
+function mapsHref(address: string, geoURI = "") {
+  if (geoURI) return geoURI;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
@@ -154,7 +157,7 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           ))}
           {card.email ? <a href={`mailto:${card.email}`}><span>Email</span><b>{card.email}</b></a> : null}
           {card.website ? <a href={externalHref(card.website)} target="_blank" rel="noreferrer"><span>Website</span><b>{card.website.replace(/^https?:\/\//, "")}</b></a> : null}
-          {card.address ? <a href={mapsHref(card.address)} target="_blank" rel="noreferrer"><span>Address</span><b>{card.address}</b></a> : null}
+          {card.address || card.address_geo_uri ? <a href={mapsHref(card.address, card.address_geo_uri)} target="_blank" rel="noreferrer"><span>Address</span><b>{card.address || "Открыть в карте"}</b></a> : null}
           {socials.map(([label, href]) => (
             <a key={label} href={externalHref(href)} target="_blank" rel="noreferrer">
               <span>{label}</span>

@@ -1,11 +1,25 @@
 import Link from "next/link";
-import { CardPreview, demoCard } from "@/components/CardPreview";
+import { CardPreview } from "@/components/CardPreview";
+import { withSettingsDefaults } from "@/lib/settings";
+import type { AppSettings } from "@/lib/types";
 
-export default function HomePage() {
+async function getSettings(): Promise<AppSettings> {
+  const api = process.env.INTERNAL_API_URL || "http://localhost:8080";
+  const response = await fetch(`${api}/api/public/settings`, { cache: "no-store" }).catch(() => undefined);
+  if (!response?.ok) return withSettingsDefaults();
+  const data = await response.json().catch(() => ({}));
+  return withSettingsDefaults(data.settings);
+}
+
+export default async function HomePage() {
+  const settings = await getSettings();
   return (
     <main className="landing">
       <nav className="site-nav">
-        <Link className="site-brand" href="/">Nexora Contacts</Link>
+        <Link className="site-brand" href="/">
+          {settings.landing_logo_url ? <img src={settings.landing_logo_url} alt="Nexora" /> : null}
+          <span>Nexora Contacts</span>
+        </Link>
         <div className="site-actions">
           <Link href="/login">Войти</Link>
           <Link className="button compact" href="/dashboard">Dashboard</Link>
@@ -13,21 +27,19 @@ export default function HomePage() {
       </nav>
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Nexora Contacts</p>
-          <h1>Контактные карточки и мини-витрины без лишней возни.</h1>
-          <p className="lead">Публичные ссылки, VCF, несколько телефонов, товары, кастомный дизайн и предпросмотр в одном аккуратном рабочем интерфейсе.</p>
+          <p className="eyebrow">{settings.landing_eyebrow}</p>
+          <h1>{settings.landing_title}</h1>
+          <p className="lead">{settings.landing_lead}</p>
           <div className="actions">
-            <Link className="button" href="/login">Войти</Link>
-            <Link className="button secondary" href="/register">Регистрация</Link>
+            <Link className="button" href={settings.landing_primary_href}>{settings.landing_primary_label}</Link>
+            <Link className="button secondary" href={settings.landing_secondary_href}>{settings.landing_secondary_label}</Link>
           </div>
           <div className="feature-row">
-            <span>Person cards</span>
-            <span>Store catalog</span>
-            <span>VCF export</span>
+            {settings.landing_features.map((feature) => <span key={feature}>{feature}</span>)}
           </div>
         </div>
         <div className="hero-preview">
-          <CardPreview card={demoCard()} />
+          <CardPreview card={settings.landing_card} />
         </div>
       </section>
     </main>
