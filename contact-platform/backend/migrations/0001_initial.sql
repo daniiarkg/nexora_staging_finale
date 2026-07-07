@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS designs (
   button_color TEXT NOT NULL DEFAULT '#0a844a',
   text_color TEXT NOT NULL DEFAULT '#030609',
   logo_url TEXT NOT NULL DEFAULT '',
+  logo_min_width INTEGER NOT NULL DEFAULT 250,
   gradient_from TEXT NOT NULL DEFAULT '#edffef',
   gradient_to TEXT NOT NULL DEFAULT '#0a844a',
   gradient_angle INTEGER NOT NULL DEFAULT 135,

@@ -90,6 +90,7 @@ export function CardEditor({ initial }: Props) {
       button_color: design.button_color,
       text_color: design.text_color,
       logo_url: design.logo_url,
+      logo_min_width: design.logo_min_width,
       gradient_from: design.gradient_from,
       gradient_to: design.gradient_to,
       gradient_angle: design.gradient_angle,

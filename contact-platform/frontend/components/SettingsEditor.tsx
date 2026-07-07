@@ -106,6 +106,10 @@ export function SettingsEditor() {
               </div>
               <label><span>Лого в лендинге</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={(event) => uploadAsset(event, "landing_logo_url")} /></label>
               <input value={settings.landing_logo_url} onChange={(event) => patch({ landing_logo_url: event.target.value })} placeholder="/uploads/logo.svg" />
+              <div className="control-grid">
+                <label><span>Мин. ширина лого в navbar, px</span><input type="number" min="80" max="420" value={settings.landing_logo_min_width} onChange={(event) => patch({ landing_logo_min_width: Number(event.target.value) })} /></label>
+                <label><span>Мин. ширина лого в карточке, px</span><input type="number" min="120" max="420" value={settings.landing_card_logo_min_width} onChange={(event) => patch({ landing_card_logo_min_width: Number(event.target.value) })} /></label>
+              </div>
               <p className="field-note">Карточка на лендинге наследует это лого как лого дизайна. Лого профиля карточки все еще имеет приоритет.</p>
             </fieldset>
 

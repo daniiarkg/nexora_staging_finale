@@ -130,6 +130,7 @@ export function DesignEditor({ initial }: { initial?: Design }) {
             {design.logo_url ? <img src={design.logo_url} alt="Лого дизайна" /> : <span className="field-note">Лого дизайна не задано</span>}
           </div>
           <label><span>Лого дизайна</span><input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" onChange={uploadDesignLogo} /></label>
+          <label><span>Мин. ширина лого дизайна, px</span><input type="number" min="120" max="420" value={design.logo_min_width || 250} onChange={(e) => patch({ logo_min_width: Number(e.target.value) })} /></label>
           <div className="toolbar-actions">
             <button type="button" className="secondary" onClick={() => patch({ logo_url: "" })} disabled={saving || !design.logo_url}>Сбросить лого дизайна</button>
           </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import type { CSSProperties } from "react";
 import { CardPreview } from "@/components/CardPreview";
 import { withSettingsDefaults } from "@/lib/settings";
 import type { AppSettings, User } from "@/lib/types";
@@ -35,9 +36,8 @@ export default async function HomePage() {
   return (
     <main className="landing">
       <nav className="site-nav">
-        <Link className="site-brand" href="/">
-          {settings.landing_logo_url ? <img src={settings.landing_logo_url} alt="Nexora" /> : null}
-          <span>Nexora Contacts</span>
+        <Link className="site-brand" href="/" aria-label="Nexora Contacts">
+          {settings.landing_logo_url ? <img src={settings.landing_logo_url} alt="" style={{ "--landing-logo-min-width": `${settings.landing_logo_min_width}px` } as CSSProperties} /> : null}
         </Link>
         <div className="site-actions">
           <Link className="button compact" href={accountAction.href}>{accountAction.label}</Link>

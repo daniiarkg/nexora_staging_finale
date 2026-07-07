@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,16 +28,18 @@ func New(db *pgxpool.Pool) *Store {
 func defaultAppSettings() models.AppSettings {
 	logo := "/nexora-text-logo.svg"
 	return models.AppSettings{
-		FaviconURL:            logo,
-		LandingLogoURL:        logo,
-		LandingEyebrow:        "Nexora Contacts",
-		LandingTitle:          "Контактные карточки и мини-витрины без лишней возни.",
-		LandingLead:           "Публичные ссылки, VCF, несколько телефонов, товары, кастомный дизайн и предпросмотр в одном аккуратном рабочем интерфейсе.",
-		LandingPrimaryLabel:   "Войти",
-		LandingPrimaryHref:    "/login",
-		LandingSecondaryLabel: "Регистрация",
-		LandingSecondaryHref:  "/register",
-		LandingFeatures:       []string{"Person cards", "Store catalog", "VCF export"},
+		FaviconURL:              logo,
+		LandingLogoURL:          logo,
+		LandingLogoMinWidth:     154,
+		LandingCardLogoMinWidth: 250,
+		LandingEyebrow:          "Nexora Contacts",
+		LandingTitle:            "Контактные карточки и мини-витрины без лишней возни.",
+		LandingLead:             "Публичные ссылки, VCF, несколько телефонов, товары, кастомный дизайн и предпросмотр в одном аккуратном рабочем интерфейсе.",
+		LandingPrimaryLabel:     "Войти",
+		LandingPrimaryHref:      "/login",
+		LandingSecondaryLabel:   "Регистрация",
+		LandingSecondaryHref:    "/register",
+		LandingFeatures:         []string{"Person cards", "Store catalog", "VCF export"},
 		LandingCard: models.Card{
 			Slug:          "demo",
 			Type:          models.CardTypePerson,
@@ -57,6 +60,7 @@ func defaultAppSettings() models.AppSettings {
 				ButtonColor:      "#0a844a",
 				TextColor:        "#030609",
 				LogoURL:          logo,
+				LogoMinWidth:     250,
 				GradientFrom:     "#edffef",
 				GradientTo:       "#0a844a",
 				GradientAngle:    135,
@@ -163,6 +167,12 @@ func (s *Store) GetSettings(ctx context.Context) (models.AppSettings, error) {
 	} else if settings.DefaultLogoURL != "" {
 		settings.LandingLogoURL = settings.DefaultLogoURL
 	}
+	if value, ok := values["landing_logo_min_width"]; ok {
+		settings.LandingLogoMinWidth = parseInt(value, settings.LandingLogoMinWidth)
+	}
+	if value, ok := values["landing_card_logo_min_width"]; ok {
+		settings.LandingCardLogoMinWidth = parseInt(value, settings.LandingCardLogoMinWidth)
+	}
 	if value, ok := values["landing_eyebrow"]; ok {
 		settings.LandingEyebrow = value
 	}
@@ -198,17 +208,19 @@ func (s *Store) UpdateSettings(ctx context.Context, settings models.AppSettings)
 	features, _ := json.Marshal(settings.LandingFeatures)
 	landingCard, _ := json.Marshal(settings.LandingCard)
 	values := map[string]string{
-		"favicon_url":             settings.FaviconURL,
-		"landing_logo_url":        settings.LandingLogoURL,
-		"landing_eyebrow":         settings.LandingEyebrow,
-		"landing_title":           settings.LandingTitle,
-		"landing_lead":            settings.LandingLead,
-		"landing_primary_label":   settings.LandingPrimaryLabel,
-		"landing_primary_href":    settings.LandingPrimaryHref,
-		"landing_secondary_label": settings.LandingSecondaryLabel,
-		"landing_secondary_href":  settings.LandingSecondaryHref,
-		"landing_features":        string(features),
-		"landing_card":            string(landingCard),
+		"favicon_url":                 settings.FaviconURL,
+		"landing_logo_url":            settings.LandingLogoURL,
+		"landing_logo_min_width":      strconv.Itoa(settings.LandingLogoMinWidth),
+		"landing_card_logo_min_width": strconv.Itoa(settings.LandingCardLogoMinWidth),
+		"landing_eyebrow":             settings.LandingEyebrow,
+		"landing_title":               settings.LandingTitle,
+		"landing_lead":                settings.LandingLead,
+		"landing_primary_label":       settings.LandingPrimaryLabel,
+		"landing_primary_href":        settings.LandingPrimaryHref,
+		"landing_secondary_label":     settings.LandingSecondaryLabel,
+		"landing_secondary_href":      settings.LandingSecondaryHref,
+		"landing_features":            string(features),
+		"landing_card":                string(landingCard),
 	}
 
 	tx, err := s.db.Begin(ctx)
@@ -413,7 +425,7 @@ func (s *Store) SetCardStatus(ctx context.Context, id, status string) (models.Ca
 }
 
 func (s *Store) ListDesigns(ctx context.Context) ([]models.Design, error) {
-	rows, err := s.db.Query(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs ORDER BY updated_at DESC`)
+	rows, err := s.db.Query(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs ORDER BY updated_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -423,8 +435,8 @@ func (s *Store) ListDesigns(ctx context.Context) ([]models.Design, error) {
 
 func (s *Store) GetDesign(ctx context.Context, id string) (models.Design, error) {
 	var out models.Design
-	err := s.db.QueryRow(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs WHERE id=$1`, id).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+	err := s.db.QueryRow(ctx, `SELECT id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at FROM designs WHERE id=$1`, id).
+		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.LogoMinWidth, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
@@ -434,11 +446,11 @@ func (s *Store) GetDesign(ctx context.Context, id string) (models.Design, error)
 func (s *Store) CreateDesign(ctx context.Context, design models.Design) (models.Design, error) {
 	var out models.Design
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO designs (owner_id, name, background_type, background_value, card_color, button_color, text_color, logo_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark)
-		VALUES (NULLIF($1,'')::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
-	`, design.OwnerID, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), strings.TrimSpace(design.LogoURL), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+		INSERT INTO designs (owner_id, name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark)
+		VALUES (NULLIF($1,'')::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
+	`, design.OwnerID, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), strings.TrimSpace(design.LogoURL), boundedInt(design.LogoMinWidth, 250, 120, 420), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
+		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.LogoMinWidth, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
 	return out, err
 }
 
@@ -447,12 +459,12 @@ func (s *Store) UpdateDesign(ctx context.Context, id string, design models.Desig
 	err := s.db.QueryRow(ctx, `
 		UPDATE designs
 		SET name=$2, background_type=$3, background_value=$4, card_color=$5, button_color=$6, text_color=$7,
-		    logo_url=$8, gradient_from=$9, gradient_to=$10, gradient_angle=$11, gradient_animated=$12,
-		    font_family=$13, font_weight=$14, font_size=$15, layout=$16, watermark=$17, updated_at=now()
+		    logo_url=$8, logo_min_width=$9, gradient_from=$10, gradient_to=$11, gradient_angle=$12, gradient_animated=$13,
+		    font_family=$14, font_weight=$15, font_size=$16, layout=$17, watermark=$18, updated_at=now()
 		WHERE id=$1
-		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
-	`, id, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), strings.TrimSpace(design.LogoURL), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
-		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
+		RETURNING id::text, COALESCE(owner_id::text,''), name, background_type, background_value, card_color, button_color, text_color, logo_url, logo_min_width, gradient_from, gradient_to, gradient_angle, gradient_animated, font_family, font_weight, font_size, layout, watermark, created_at, updated_at
+	`, id, design.Name, defaultString(design.BackgroundType, "solid"), defaultString(design.BackgroundValue, "#edffef"), defaultString(design.CardColor, "#edffef"), defaultString(design.ButtonColor, "#0a844a"), defaultString(design.TextColor, "#030609"), strings.TrimSpace(design.LogoURL), boundedInt(design.LogoMinWidth, 250, 120, 420), defaultString(design.GradientFrom, "#edffef"), defaultString(design.GradientTo, "#0a844a"), positiveInt(design.GradientAngle, 135), design.GradientAnimated, defaultString(design.FontFamily, "system"), positiveInt(design.FontWeight, 700), positiveInt(design.FontSize, 100), defaultString(design.Layout, "custom"), design.Watermark).
+		Scan(&out.ID, &out.OwnerID, &out.Name, &out.BackgroundType, &out.BackgroundValue, &out.CardColor, &out.ButtonColor, &out.TextColor, &out.LogoURL, &out.LogoMinWidth, &out.GradientFrom, &out.GradientTo, &out.GradientAngle, &out.GradientAnimated, &out.FontFamily, &out.FontWeight, &out.FontSize, &out.Layout, &out.Watermark, &out.CreatedAt, &out.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
@@ -560,7 +572,7 @@ func scanDesigns(rows pgx.Rows) ([]models.Design, error) {
 	designs := []models.Design{}
 	for rows.Next() {
 		var design models.Design
-		if err := rows.Scan(&design.ID, &design.OwnerID, &design.Name, &design.BackgroundType, &design.BackgroundValue, &design.CardColor, &design.ButtonColor, &design.TextColor, &design.LogoURL, &design.GradientFrom, &design.GradientTo, &design.GradientAngle, &design.GradientAnimated, &design.FontFamily, &design.FontWeight, &design.FontSize, &design.Layout, &design.Watermark, &design.CreatedAt, &design.UpdatedAt); err != nil {
+		if err := rows.Scan(&design.ID, &design.OwnerID, &design.Name, &design.BackgroundType, &design.BackgroundValue, &design.CardColor, &design.ButtonColor, &design.TextColor, &design.LogoURL, &design.LogoMinWidth, &design.GradientFrom, &design.GradientTo, &design.GradientAngle, &design.GradientAnimated, &design.FontFamily, &design.FontWeight, &design.FontSize, &design.Layout, &design.Watermark, &design.CreatedAt, &design.UpdatedAt); err != nil {
 			return nil, err
 		}
 		designs = append(designs, design)
@@ -572,6 +584,8 @@ func normalizeAppSettings(settings models.AppSettings) models.AppSettings {
 	defaults := defaultAppSettings()
 	settings.FaviconURL = defaultString(settings.FaviconURL, defaults.FaviconURL)
 	settings.LandingLogoURL = defaultString(settings.LandingLogoURL, defaults.LandingLogoURL)
+	settings.LandingLogoMinWidth = boundedInt(settings.LandingLogoMinWidth, defaults.LandingLogoMinWidth, 80, 420)
+	settings.LandingCardLogoMinWidth = boundedInt(settings.LandingCardLogoMinWidth, defaults.LandingCardLogoMinWidth, 120, 420)
 	settings.LandingEyebrow = defaultString(settings.LandingEyebrow, defaults.LandingEyebrow)
 	settings.LandingTitle = defaultString(settings.LandingTitle, defaults.LandingTitle)
 	settings.LandingLead = defaultString(settings.LandingLead, defaults.LandingLead)
@@ -607,6 +621,7 @@ func normalizeAppSettings(settings models.AppSettings) models.AppSettings {
 	}
 	card.Design = normalizeDesignConfig(card.Design)
 	card.Design.LogoURL = settings.LandingLogoURL
+	card.Design.LogoMinWidth = settings.LandingCardLogoMinWidth
 	card.VCFButton = normalizeVCFButton(card.VCFButton)
 	if card.CustomFields == nil {
 		card.CustomFields = []models.CustomField{}
@@ -639,6 +654,27 @@ func cleanSettingStrings(values []string, limit int) []string {
 	return out
 }
 
+func parseInt(value string, fallback int) int {
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func boundedInt(value, fallback, minValue, maxValue int) int {
+	if value <= 0 {
+		value = fallback
+	}
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
+}
+
 func positiveInt(value, fallback int) int {
 	if value > 0 {
 		return value
@@ -653,6 +689,7 @@ func normalizeDesignConfig(design models.DesignConfig) models.DesignConfig {
 	design.ButtonColor = defaultString(design.ButtonColor, "#0a844a")
 	design.TextColor = defaultString(design.TextColor, "#030609")
 	design.LogoURL = strings.TrimSpace(design.LogoURL)
+	design.LogoMinWidth = boundedInt(design.LogoMinWidth, 250, 120, 420)
 	design.GradientFrom = defaultString(design.GradientFrom, design.BackgroundValue)
 	design.GradientTo = defaultString(design.GradientTo, design.ButtonColor)
 	design.GradientAngle = positiveInt(design.GradientAngle, 135)

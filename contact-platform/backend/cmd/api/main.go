@@ -599,6 +599,9 @@ func normalizeDesign(design models.DesignConfig) models.DesignConfig {
 	design.ButtonColor = defaultString(design.ButtonColor, "#0a844a")
 	design.TextColor = defaultString(design.TextColor, "#030609")
 	design.LogoURL = strings.TrimSpace(design.LogoURL)
+	if design.LogoMinWidth <= 0 {
+		design.LogoMinWidth = 250
+	}
 	design.GradientFrom = defaultString(design.GradientFrom, design.BackgroundValue)
 	design.GradientTo = defaultString(design.GradientTo, design.ButtonColor)
 	if design.GradientAngle <= 0 {

@@ -43,6 +43,7 @@ type DesignConfig struct {
 	ButtonColor      string `json:"button_color"`
 	TextColor        string `json:"text_color"`
 	LogoURL          string `json:"logo_url"`
+	LogoMinWidth     int    `json:"logo_min_width"`
 	GradientFrom     string `json:"gradient_from"`
 	GradientTo       string `json:"gradient_to"`
 	GradientAngle    int    `json:"gradient_angle"`
@@ -108,6 +109,7 @@ type Design struct {
 	ButtonColor      string    `json:"button_color"`
 	TextColor        string    `json:"text_color"`
 	LogoURL          string    `json:"logo_url"`
+	LogoMinWidth     int       `json:"logo_min_width"`
 	GradientFrom     string    `json:"gradient_from"`
 	GradientTo       string    `json:"gradient_to"`
 	GradientAngle    int       `json:"gradient_angle"`
@@ -122,16 +124,18 @@ type Design struct {
 }
 
 type AppSettings struct {
-	DefaultLogoURL        string   `json:"default_logo_url,omitempty"`
-	FaviconURL            string   `json:"favicon_url"`
-	LandingLogoURL        string   `json:"landing_logo_url"`
-	LandingEyebrow        string   `json:"landing_eyebrow"`
-	LandingTitle          string   `json:"landing_title"`
-	LandingLead           string   `json:"landing_lead"`
-	LandingPrimaryLabel   string   `json:"landing_primary_label"`
-	LandingPrimaryHref    string   `json:"landing_primary_href"`
-	LandingSecondaryLabel string   `json:"landing_secondary_label"`
-	LandingSecondaryHref  string   `json:"landing_secondary_href"`
-	LandingFeatures       []string `json:"landing_features"`
-	LandingCard           Card     `json:"landing_card"`
+	DefaultLogoURL          string   `json:"default_logo_url,omitempty"`
+	FaviconURL              string   `json:"favicon_url"`
+	LandingLogoURL          string   `json:"landing_logo_url"`
+	LandingLogoMinWidth     int      `json:"landing_logo_min_width"`
+	LandingCardLogoMinWidth int      `json:"landing_card_logo_min_width"`
+	LandingEyebrow          string   `json:"landing_eyebrow"`
+	LandingTitle            string   `json:"landing_title"`
+	LandingLead             string   `json:"landing_lead"`
+	LandingPrimaryLabel     string   `json:"landing_primary_label"`
+	LandingPrimaryHref      string   `json:"landing_primary_href"`
+	LandingSecondaryLabel   string   `json:"landing_secondary_label"`
+	LandingSecondaryHref    string   `json:"landing_secondary_href"`
+	LandingFeatures         []string `json:"landing_features"`
+	LandingCard             Card     `json:"landing_card"`
 }

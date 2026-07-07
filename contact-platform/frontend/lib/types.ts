@@ -28,6 +28,7 @@ export type DesignConfig = {
   button_color: string;
   text_color: string;
   logo_url: string;
+  logo_min_width: number;
   gradient_from: string;
   gradient_to: string;
   gradient_angle: number;
@@ -83,6 +84,8 @@ export type AppSettings = {
   default_logo_url?: string;
   favicon_url: string;
   landing_logo_url: string;
+  landing_logo_min_width: number;
+  landing_card_logo_min_width: number;
   landing_eyebrow: string;
   landing_title: string;
   landing_lead: string;

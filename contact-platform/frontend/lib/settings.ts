@@ -20,7 +20,7 @@ export function defaultLandingCard(logoURL = defaultLogo): Card {
     photo_url: "",
     logo_url: "",
     hide_logo: false,
-    design: { ...defaultDesign, logo_url: logoURL },
+    design: { ...defaultDesign, logo_url: logoURL, logo_min_width: 250 },
     vcf_button: { enabled: true, label: "Сохранить контакт" },
     custom_fields: [{ label: "Office", value: "Mon-Fri, 10:00-18:00", type: "text" }],
     products: []
@@ -31,6 +31,8 @@ export function defaultSettings(): AppSettings {
   return {
     favicon_url: defaultLogo,
     landing_logo_url: defaultLogo,
+    landing_logo_min_width: 154,
+    landing_card_logo_min_width: 250,
     landing_eyebrow: "Nexora Contacts",
     landing_title: "Контактные карточки и мини-витрины без лишней возни.",
     landing_lead: "Публичные ссылки, VCF, несколько телефонов, товары, кастомный дизайн и предпросмотр в одном аккуратном рабочем интерфейсе.",
@@ -46,10 +48,14 @@ export function defaultSettings(): AppSettings {
 export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettings {
   const defaults = defaultSettings();
   const landingLogo = settings?.landing_logo_url || defaults.landing_logo_url;
+  const landingLogoMinWidth = boundedNumber(settings?.landing_logo_min_width, defaults.landing_logo_min_width, 80, 420);
+  const landingCardLogoMinWidth = boundedNumber(settings?.landing_card_logo_min_width, defaults.landing_card_logo_min_width, 120, 420);
   return {
     ...defaults,
     ...(settings || {}),
     landing_logo_url: landingLogo,
+    landing_logo_min_width: landingLogoMinWidth,
+    landing_card_logo_min_width: landingCardLogoMinWidth,
     landing_features: settings?.landing_features?.length ? settings.landing_features : defaults.landing_features,
     landing_card: {
       ...defaults.landing_card,
@@ -57,7 +63,8 @@ export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettin
       design: {
         ...defaults.landing_card.design,
         ...(settings?.landing_card?.design || {}),
-        logo_url: landingLogo
+        logo_url: landingLogo,
+        logo_min_width: landingCardLogoMinWidth
       },
       vcf_button: {
         ...defaults.landing_card.vcf_button,
@@ -68,4 +75,10 @@ export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettin
       products: settings?.landing_card?.products || defaults.landing_card.products
     }
   };
+}
+
+function boundedNumber(value: number | undefined, fallback: number, min: number, max: number) {
+  const next = Number(value || fallback);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.min(Math.max(next, min), max);
 }

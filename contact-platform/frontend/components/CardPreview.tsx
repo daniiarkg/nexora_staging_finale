@@ -93,7 +93,10 @@ function fontFamily(value: Card["design"]["font_family"]) {
 export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const design = { ...defaultDesign, ...(card.design || {}) };
   const background = backgroundValue(design);
-  const logo = card.hide_logo ? "" : (card.logo_url || design.logo_url || "");
+  const profileLogo = card.logo_url || "";
+  const designLogo = design.logo_url || "";
+  const logo = card.hide_logo ? "" : (profileLogo || designLogo);
+  const logoMinWidth = !profileLogo && designLogo ? Math.min(Math.max(design.logo_min_width || 250, 120), 420) : 250;
   const watermark = design.watermark && logo ? logo : "";
   const phones = card.phones || [];
   const products = card.products || [];
@@ -112,7 +115,8 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           "--button-color": design.button_color || "#0a844a",
           "--card-font-family": fontFamily(design.font_family),
           "--card-font-scale": String(fontScale),
-          "--card-font-weight": String(design.font_weight || 700)
+          "--card-font-weight": String(design.font_weight || 700),
+          "--card-logo-min-width": `${logoMinWidth}px`
         } as CSSProperties & Record<string, string>}
       >
         <div className="preview-card-bg">

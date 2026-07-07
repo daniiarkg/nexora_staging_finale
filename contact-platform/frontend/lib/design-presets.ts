@@ -7,6 +7,7 @@ export const defaultDesign: DesignConfig = {
   button_color: "#0a844a",
   text_color: "#030609",
   logo_url: "",
+  logo_min_width: 250,
   gradient_from: "#edffef",
   gradient_to: "#0a844a",
   gradient_angle: 135,
