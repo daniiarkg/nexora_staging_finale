@@ -11,7 +11,15 @@ const (
 
 	StatusDraft     = "draft"
 	StatusPublished = "published"
+
+	LanguageRU = "ru"
+	LanguageEN = "en"
+	LanguageKY = "ky"
 )
+
+type TranslationCopy map[string]string
+
+type TranslationDictionary map[string]TranslationCopy
 
 type User struct {
 	ID           string    `json:"id"`
@@ -89,31 +97,32 @@ type VCFButton struct {
 }
 
 type Card struct {
-	ID            string        `json:"id"`
-	OwnerID       string        `json:"owner_id"`
-	Slug          string        `json:"slug"`
-	Type          string        `json:"type"`
-	Status        string        `json:"status"`
-	Name          string        `json:"name"`
-	Position      string        `json:"position,omitempty"`
-	Company       string        `json:"company,omitempty"`
-	Email         string        `json:"email,omitempty"`
-	Website       string        `json:"website,omitempty"`
-	Address       string        `json:"address,omitempty"`
-	AddressGeoURI string        `json:"address_geo_uri,omitempty"`
-	Phones        []string      `json:"phones"`
-	Socials       Socials       `json:"socials"`
-	PhotoURL      string        `json:"photo_url,omitempty"`
-	LogoURL       string        `json:"logo_url,omitempty"`
-	HideLogo      bool          `json:"hide_logo"`
-	DesignID      string        `json:"design_id,omitempty"`
-	Design        DesignConfig  `json:"design"`
-	VCFButton     VCFButton     `json:"vcf_button"`
-	CustomFields  []CustomField `json:"custom_fields"`
-	Products      []Product     `json:"products,omitempty"`
-	CreatedAt     time.Time     `json:"created_at"`
-	UpdatedAt     time.Time     `json:"updated_at"`
-	PublishedAt   *time.Time    `json:"published_at,omitempty"`
+	ID                string        `json:"id"`
+	OwnerID           string        `json:"owner_id"`
+	Slug              string        `json:"slug"`
+	Type              string        `json:"type"`
+	Status            string        `json:"status"`
+	PreferredLanguage string        `json:"preferred_language"`
+	Name              string        `json:"name"`
+	Position          string        `json:"position,omitempty"`
+	Company           string        `json:"company,omitempty"`
+	Email             string        `json:"email,omitempty"`
+	Website           string        `json:"website,omitempty"`
+	Address           string        `json:"address,omitempty"`
+	AddressGeoURI     string        `json:"address_geo_uri,omitempty"`
+	Phones            []string      `json:"phones"`
+	Socials           Socials       `json:"socials"`
+	PhotoURL          string        `json:"photo_url,omitempty"`
+	LogoURL           string        `json:"logo_url,omitempty"`
+	HideLogo          bool          `json:"hide_logo"`
+	DesignID          string        `json:"design_id,omitempty"`
+	Design            DesignConfig  `json:"design"`
+	VCFButton         VCFButton     `json:"vcf_button"`
+	CustomFields      []CustomField `json:"custom_fields"`
+	Products          []Product     `json:"products,omitempty"`
+	CreatedAt         time.Time     `json:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at"`
+	PublishedAt       *time.Time    `json:"published_at,omitempty"`
 }
 
 type Product struct {
@@ -164,18 +173,19 @@ type Design struct {
 }
 
 type AppSettings struct {
-	DefaultLogoURL          string   `json:"default_logo_url,omitempty"`
-	FaviconURL              string   `json:"favicon_url"`
-	LandingLogoURL          string   `json:"landing_logo_url"`
-	LandingLogoMinWidth     int      `json:"landing_logo_min_width"`
-	LandingCardLogoMinWidth int      `json:"landing_card_logo_min_width"`
-	LandingEyebrow          string   `json:"landing_eyebrow"`
-	LandingTitle            string   `json:"landing_title"`
-	LandingLead             string   `json:"landing_lead"`
-	LandingPrimaryLabel     string   `json:"landing_primary_label"`
-	LandingPrimaryHref      string   `json:"landing_primary_href"`
-	LandingSecondaryLabel   string   `json:"landing_secondary_label"`
-	LandingSecondaryHref    string   `json:"landing_secondary_href"`
-	LandingFeatures         []string `json:"landing_features"`
-	LandingCard             Card     `json:"landing_card"`
+	DefaultLogoURL          string                `json:"default_logo_url,omitempty"`
+	FaviconURL              string                `json:"favicon_url"`
+	Translations            TranslationDictionary `json:"translations"`
+	LandingLogoURL          string                `json:"landing_logo_url"`
+	LandingLogoMinWidth     int                   `json:"landing_logo_min_width"`
+	LandingCardLogoMinWidth int                   `json:"landing_card_logo_min_width"`
+	LandingEyebrow          string                `json:"landing_eyebrow"`
+	LandingTitle            string                `json:"landing_title"`
+	LandingLead             string                `json:"landing_lead"`
+	LandingPrimaryLabel     string                `json:"landing_primary_label"`
+	LandingPrimaryHref      string                `json:"landing_primary_href"`
+	LandingSecondaryLabel   string                `json:"landing_secondary_label"`
+	LandingSecondaryHref    string                `json:"landing_secondary_href"`
+	LandingFeatures         []string              `json:"landing_features"`
+	LandingCard             Card                  `json:"landing_card"`
 }

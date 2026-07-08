@@ -438,6 +438,7 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	}
 	card.Type = defaultString(card.Type, models.CardTypePerson)
 	card.Status = defaultString(card.Status, models.StatusDraft)
+	card.PreferredLanguage = normalizeLanguage(card.PreferredLanguage)
 	card.Slug = slugify(card.Slug)
 	if card.Slug == "" {
 		card.Slug = slugify(card.Name)
@@ -637,6 +638,15 @@ func normalizeBackgroundType(value string) string {
 		return strings.TrimSpace(value)
 	default:
 		return "solid"
+	}
+}
+
+func normalizeLanguage(value string) string {
+	switch strings.TrimSpace(value) {
+	case models.LanguageRU, models.LanguageEN, models.LanguageKY:
+		return strings.TrimSpace(value)
+	default:
+		return models.LanguageRU
 	}
 }
 

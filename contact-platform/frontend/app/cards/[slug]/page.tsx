@@ -1,5 +1,6 @@
 import { CardPreview } from "@/components/CardPreview";
-import type { Card } from "@/lib/types";
+import { withSettingsDefaults } from "@/lib/settings";
+import type { AppSettings, Card } from "@/lib/types";
 
 async function getPublicCard(slug: string): Promise<Card | undefined> {
   const api = process.env.INTERNAL_API_URL || "http://localhost:8080";
@@ -9,9 +10,17 @@ async function getPublicCard(slug: string): Promise<Card | undefined> {
   return data.card;
 }
 
+async function getSettings(): Promise<AppSettings> {
+  const api = process.env.INTERNAL_API_URL || "http://localhost:8080";
+  const response = await fetch(`${api}/api/public/settings`, { cache: "no-store" }).catch(() => undefined);
+  if (!response?.ok) return withSettingsDefaults();
+  const data = await response.json().catch(() => ({}));
+  return withSettingsDefaults(data.settings);
+}
+
 export default async function PublicCardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const card = await getPublicCard(slug);
+  const [card, settings] = await Promise.all([getPublicCard(slug), getSettings()]);
   if (!card) return <main className="panel">Карточка не найдена или не опубликована.</main>;
-  return <main className="public-card-page"><CardPreview card={card} vcfHref={`/api/public/cards/${card.slug}/vcf`} /></main>;
+  return <main className="public-card-page"><CardPreview card={card} vcfHref={`/api/public/cards/${card.slug}/vcf`} translations={settings.translations} /></main>;
 }

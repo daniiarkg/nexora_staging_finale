@@ -1,5 +1,6 @@
 import type { AppSettings, Card } from "./types";
 import { defaultDesign } from "./design-presets";
+import { defaultTranslations, normalizeLanguage, normalizeTranslations } from "./i18n";
 
 const defaultLogo = "/nexora-text-logo.svg";
 
@@ -8,6 +9,7 @@ export function defaultLandingCard(logoURL = defaultLogo): Card {
     slug: "demo",
     type: "person",
     status: "published",
+    preferred_language: "ru",
     name: "Айбек Осмонов",
     position: "AI Operations Consultant",
     company: "Nexora Group",
@@ -30,6 +32,7 @@ export function defaultLandingCard(logoURL = defaultLogo): Card {
 export function defaultSettings(): AppSettings {
   return {
     favicon_url: defaultLogo,
+    translations: defaultTranslations,
     landing_logo_url: defaultLogo,
     landing_logo_min_width: 154,
     landing_card_logo_min_width: 250,
@@ -54,12 +57,14 @@ export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettin
     ...defaults,
     ...(settings || {}),
     landing_logo_url: landingLogo,
+    translations: normalizeTranslations(settings?.translations),
     landing_logo_min_width: landingLogoMinWidth,
     landing_card_logo_min_width: landingCardLogoMinWidth,
     landing_features: settings?.landing_features?.length ? settings.landing_features : defaults.landing_features,
     landing_card: {
       ...defaults.landing_card,
       ...(settings?.landing_card || {}),
+      preferred_language: normalizeLanguage(settings?.landing_card?.preferred_language),
       design: {
         ...defaults.landing_card.design,
         ...(settings?.landing_card?.design || {}),

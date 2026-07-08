@@ -1,5 +1,26 @@
 export type Role = "super_user" | "user";
 
+export type LanguageCode = "ru" | "en" | "ky";
+
+export type TranslationKey =
+  | "language_menu_label"
+  | "language_ru"
+  | "language_en"
+  | "language_ky"
+  | "phone_label"
+  | "email_label"
+  | "website_label"
+  | "address_label"
+  | "open_map_label"
+  | "vcf_save_label"
+  | "person_name_placeholder"
+  | "store_name_placeholder"
+  | "product_placeholder";
+
+export type TranslationCopy = Record<TranslationKey, string>;
+
+export type TranslationDictionary = Record<LanguageCode, TranslationCopy>;
+
 export type User = {
   id: string;
   email: string;
@@ -83,6 +104,7 @@ export type Card = {
   slug: string;
   type: "person" | "store";
   status: "draft" | "published";
+  preferred_language: LanguageCode;
   name: string;
   position: string;
   company: string;
@@ -115,6 +137,7 @@ export type Design = DesignConfig & {
 export type AppSettings = {
   default_logo_url?: string;
   favicon_url: string;
+  translations: TranslationDictionary;
   landing_logo_url: string;
   landing_logo_min_width: number;
   landing_card_logo_min_width: number;

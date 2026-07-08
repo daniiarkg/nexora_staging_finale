@@ -1,6 +1,9 @@
-import type { CSSProperties } from "react";
-import type { Card } from "@/lib/types";
+"use client";
+
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import type { Card, LanguageCode, TranslationDictionary, TranslationCopy } from "@/lib/types";
 import { defaultDesign } from "@/lib/design-presets";
+import { copyForLanguage, languages, normalizeLanguage, normalizeTranslations, vcfLabelFor } from "@/lib/i18n";
 import { designCardBackground, designStageBackground, meshAnimationClass } from "@/lib/mesh-gradient";
 
 export function emptyCard(): Card {
@@ -8,6 +11,7 @@ export function emptyCard(): Card {
     slug: "",
     type: "person",
     status: "draft",
+    preferred_language: "ru",
     name: "",
     position: "",
     company: "",
@@ -70,6 +74,7 @@ function socialActions(card: Card) {
 type CardPreviewProps = {
   card: Card;
   vcfHref?: string;
+  translations?: Partial<TranslationDictionary>;
 };
 
 function fontFamily(value: Card["design"]["font_family"]) {
@@ -90,8 +95,45 @@ function DownloadIcon() {
   );
 }
 
-export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
+function LanguageSwitcher({ language, copy, onChange }: { language: LanguageCode; copy: TranslationCopy; onChange: (language: LanguageCode) => void }) {
+  const labels: Record<LanguageCode, string> = {
+    ru: copy.language_ru,
+    en: copy.language_en,
+    ky: copy.language_ky
+  };
+  return (
+    <details className="language-switcher">
+      <summary aria-label={copy.language_menu_label} title={copy.language_menu_label}>
+        <span className="language-burger" aria-hidden="true"><span /><span /><span /></span>
+        <b>{language.toUpperCase()}</b>
+      </summary>
+      <div className="language-menu">
+        {languages.map((item) => (
+          <button
+            type="button"
+            key={item.code}
+            className={item.code === language ? "is-active" : ""}
+            onClick={(event) => {
+              onChange(item.code);
+              event.currentTarget.closest("details")?.removeAttribute("open");
+            }}
+          >
+            {labels[item.code] || item.nativeLabel}
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+export function CardPreview({ card, vcfHref = "", translations }: CardPreviewProps) {
   const design = { ...defaultDesign, ...(card.design || {}) };
+  const normalizedTranslations = useMemo(() => normalizeTranslations(translations), [translations]);
+  const [language, setLanguage] = useState<LanguageCode>(() => normalizeLanguage(card.preferred_language));
+  useEffect(() => {
+    setLanguage(normalizeLanguage(card.preferred_language));
+  }, [card.preferred_language]);
+  const copy = useMemo(() => copyForLanguage(normalizedTranslations, language), [language, normalizedTranslations]);
   const background = designStageBackground(design);
   const cardBackground = designCardBackground(design);
   const profileLogo = card.logo_url || "";
@@ -104,6 +146,7 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const customFields = card.custom_fields || [];
   const socials = socialActions(card);
   const vcfButton = card.vcf_button || { enabled: true, label: "Скачать VCF" };
+  const vcfLabel = vcfLabelFor(vcfButton.label, copy);
   const fontScale = Math.min(Math.max(design.font_size || 100, 82), 122) / 100;
   const stageAnimationClass = design.background_type === "mesh" ? meshAnimationClass(design.background_mesh.animation) : "";
   const cardAnimationClass = design.card_background_type === "mesh" ? meshAnimationClass(design.card_mesh.animation) : "";
@@ -141,11 +184,12 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           {design.top_image_url ? <img className="preview-edge-image preview-edge-image-top" src={design.top_image_url} alt="" /> : null}
           <header className="preview-header">
             {logo ? <img className="preview-logo" src={logo} alt="Logo" /> : <span className="preview-logo-placeholder" />}
+            <LanguageSwitcher language={language} copy={copy} onChange={setLanguage} />
           </header>
           <div className="preview-identity">
             {card.photo_url ? <img className="preview-avatar" src={card.photo_url} alt={card.name} /> : null}
             <div>
-              <h1>{card.name || (card.type === "store" ? "Название магазина" : "Имя Фамилия")}</h1>
+              <h1>{card.name || (card.type === "store" ? copy.store_name_placeholder : copy.person_name_placeholder)}</h1>
               {card.position ? <p className="preview-sub">{card.position}</p> : null}
               {card.company && card.type === "person" ? <p className="preview-company">{card.company}</p> : null}
             </div>
@@ -155,7 +199,7 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
               {products.map((product, index) => (
                 <div className="preview-product" key={`${product.title}-${index}`}>
                   {product.photo_url ? <img src={product.photo_url} alt={product.title} /> : <span />}
-                  <b>{product.title || "Товар"}</b>
+                  <b>{product.title || copy.product_placeholder}</b>
                   {product.price ? <small>{product.price}</small> : null}
                 </div>
               ))}
@@ -164,13 +208,13 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           <div className="preview-actions">
             {phones.filter(Boolean).map((phone, index) => (
               <a key={`${phone}-${index}`} href={`tel:${phone}`}>
-                <span>Phone {index ? index + 1 : ""}</span>
+                <span>{copy.phone_label}{index ? ` ${index + 1}` : ""}</span>
                 <b>{phone}</b>
               </a>
             ))}
-            {card.email ? <a href={`mailto:${card.email}`}><span>Email</span><b>{card.email}</b></a> : null}
-            {card.website ? <a href={externalHref(card.website)} target="_blank" rel="noreferrer"><span>Website</span><b>{card.website.replace(/^https?:\/\//, "")}</b></a> : null}
-            {card.address || card.address_geo_uri ? <a href={mapsHref(card.address, card.address_geo_uri)} target="_blank" rel="noreferrer"><span>Address</span><b>{card.address || "Открыть в карте"}</b></a> : null}
+            {card.email ? <a href={`mailto:${card.email}`}><span>{copy.email_label}</span><b>{card.email}</b></a> : null}
+            {card.website ? <a href={externalHref(card.website)} target="_blank" rel="noreferrer"><span>{copy.website_label}</span><b>{card.website.replace(/^https?:\/\//, "")}</b></a> : null}
+            {card.address || card.address_geo_uri ? <a href={mapsHref(card.address, card.address_geo_uri)} target="_blank" rel="noreferrer"><span>{copy.address_label}</span><b>{card.address || copy.open_map_label}</b></a> : null}
             {socials.map(([label, href]) => (
               <a key={label} href={externalHref(href)} target="_blank" rel="noreferrer">
                 <span>{label}</span>
@@ -187,7 +231,7 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           {vcfButton.enabled ? (
             <a className="preview-vcf-button" href={vcfHref || undefined}>
               <DownloadIcon />
-              <span>{vcfButton.label || "Скачать VCF"}</span>
+              <span>{vcfLabel}</span>
             </a>
           ) : null}
           {design.bottom_image_url ? <img className="preview-edge-image preview-edge-image-bottom" src={design.bottom_image_url} alt="" /> : null}

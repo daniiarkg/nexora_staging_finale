@@ -2,8 +2,9 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import { apiFetch, uploadFile } from "@/lib/api";
+import { languages, translationFields } from "@/lib/i18n";
 import { defaultSettings, withSettingsDefaults } from "@/lib/settings";
-import type { AppSettings, Card } from "@/lib/types";
+import type { AppSettings, Card, LanguageCode, TranslationKey } from "@/lib/types";
 import { CardPreview } from "./CardPreview";
 
 type AssetKey = "favicon_url" | "landing_logo_url";
@@ -13,6 +14,7 @@ export function SettingsEditor() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [translationLanguage, setTranslationLanguage] = useState<LanguageCode>("ru");
 
   useEffect(() => {
     apiFetch<{ settings: AppSettings }>("/api/settings")
@@ -40,6 +42,18 @@ export function SettingsEditor() {
     const phones = [...settings.landing_card.phones];
     phones[index] = value;
     patchLandingCard({ phones });
+  }
+
+  function patchTranslation(language: LanguageCode, key: TranslationKey, value: string) {
+    patch({
+      translations: {
+        ...settings.translations,
+        [language]: {
+          ...settings.translations[language],
+          [key]: value
+        }
+      }
+    });
   }
 
   async function uploadAsset(event: ChangeEvent<HTMLInputElement>, key: AssetKey) {
@@ -130,7 +144,34 @@ export function SettingsEditor() {
             </fieldset>
 
             <fieldset>
+              <legend>Мультиязычность карточки</legend>
+              <div className="segmented-control">
+                {languages.map((language) => (
+                  <button
+                    type="button"
+                    key={language.code}
+                    className={translationLanguage === language.code ? "is-active" : ""}
+                    onClick={() => setTranslationLanguage(language.code)}
+                  >
+                    {language.nativeLabel}
+                  </button>
+                ))}
+              </div>
+              <p className="field-note">Эти строки управляют подписями публичной карточки и меню языка. Их можно править вручную, если перевод нужно скорректировать.</p>
+              {translationFields.map((field) => (
+                <label key={field.key}>
+                  <span>{field.label}</span>
+                  <input
+                    value={settings.translations[translationLanguage][field.key]}
+                    onChange={(event) => patchTranslation(translationLanguage, field.key, event.target.value)}
+                  />
+                </label>
+              ))}
+            </fieldset>
+
+            <fieldset>
               <legend>Карточка на лендинге</legend>
+              <label><span>Основной язык карточки</span><select value={settings.landing_card.preferred_language} onChange={(event) => patchLandingCard({ preferred_language: event.target.value as Card["preferred_language"] })}>{languages.map((language) => <option value={language.code} key={language.code}>{language.label}</option>)}</select></label>
               <label><span>Тип</span><select value={settings.landing_card.type} onChange={(event) => patchLandingCard({ type: event.target.value as Card["type"] })}><option value="person">Контакт</option><option value="store">Магазин</option></select></label>
               <label><span>Имя / название</span><input value={settings.landing_card.name} onChange={(event) => patchLandingCard({ name: event.target.value })} /></label>
               <label><span>Должность / описание</span><input value={settings.landing_card.position} onChange={(event) => patchLandingCard({ position: event.target.value })} /></label>
@@ -152,7 +193,7 @@ export function SettingsEditor() {
           </div>
 
           <aside className="editor-preview settings-preview">
-            <CardPreview card={settings.landing_card} vcfHref="#" />
+            <CardPreview card={settings.landing_card} vcfHref="#" translations={settings.translations} />
           </aside>
         </div>
       </section>

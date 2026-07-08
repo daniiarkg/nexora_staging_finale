@@ -57,7 +57,7 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="hero-preview">
-          <CardPreview card={settings.landing_card} />
+          <CardPreview card={settings.landing_card} translations={settings.translations} />
         </div>
       </section>
     </main>

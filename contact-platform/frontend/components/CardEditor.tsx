@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
 import { apiFetch, uploadFile } from "@/lib/api";
-import type { Card, CustomField, Design, DesignConfig, Product } from "@/lib/types";
+import { languages, defaultTranslations } from "@/lib/i18n";
+import { withSettingsDefaults } from "@/lib/settings";
+import type { AppSettings, Card, CustomField, Design, DesignConfig, Product, TranslationDictionary } from "@/lib/types";
 import { CardPreview, emptyCard } from "./CardPreview";
 
 type Props = {
@@ -31,12 +33,16 @@ export function CardEditor({ initial }: Props) {
   const [saving, setSaving] = useState(false);
   const [designs, setDesigns] = useState<Design[]>([]);
   const [selectedDesignId, setSelectedDesignId] = useState(initial?.design_id || "");
+  const [translations, setTranslations] = useState<TranslationDictionary>(defaultTranslations);
 
   useEffect(() => {
     apiFetch<{ designs: Design[] }>("/api/designs").then((data) => {
       setDesigns(data.designs);
       if (!selectedDesignId && data.designs[0]?.id) setSelectedDesignId(data.designs[0].id);
     }).catch(() => setDesigns([]));
+    apiFetch<{ settings: AppSettings }>("/api/settings")
+      .then((data) => setTranslations(withSettingsDefaults(data.settings).translations))
+      .catch(() => setTranslations(defaultTranslations));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,6 +162,7 @@ export function CardEditor({ initial }: Props) {
         <fieldset>
           <legend>Тип и основные данные</legend>
           <label><span>Тип</span><select value={card.type} onChange={(e) => patch({ type: e.target.value as Card["type"] })}><option value="person">Контакт</option><option value="store">Магазин</option></select></label>
+          <label><span>Основной язык карточки</span><select value={card.preferred_language} onChange={(e) => patch({ preferred_language: e.target.value as Card["preferred_language"] })}>{languages.map((language) => <option value={language.code} key={language.code}>{language.label}</option>)}</select></label>
           <label><span>{card.type === "store" ? "Название магазина" : "ФИО"}</span><input value={card.name} onChange={(e) => patch({ name: e.target.value })} /></label>
           <label><span>{card.type === "store" ? "Описание" : "Должность"}</span><input value={card.position} onChange={(e) => patch({ position: e.target.value })} /></label>
           <label><span>Компания</span><input value={card.company} onChange={(e) => patch({ company: e.target.value })} /></label>
@@ -239,7 +246,7 @@ export function CardEditor({ initial }: Props) {
         </fieldset>
       </section>
       <aside className="editor-preview">
-        <CardPreview card={card} vcfHref="#" />
+        <CardPreview card={card} vcfHref="#" translations={translations} />
       </aside>
     </div>
   );
