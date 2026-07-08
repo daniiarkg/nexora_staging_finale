@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = withSettingsDefaults(data.settings);
   return {
     title: "Nexora Contacts",
-    description: "Digital contact cards and store cards",
+    description: "Контактные карточки и мини-витрины Nexora",
     icons: settings.favicon_url ? { icon: settings.favicon_url, shortcut: settings.favicon_url, apple: settings.favicon_url } : undefined
   };
 }

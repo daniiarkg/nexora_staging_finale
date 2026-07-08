@@ -141,12 +141,10 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           </div>
           <header className="preview-header">
             {logo ? <img className="preview-logo" src={logo} alt="Logo" /> : <span className="preview-logo-placeholder" />}
-            <span className="preview-status">{card.type === "store" ? "Store" : "Contact"}</span>
           </header>
           <div className="preview-identity">
             {card.photo_url ? <img className="preview-avatar" src={card.photo_url} alt={card.name} /> : null}
             <div>
-              <p className="eyebrow">{card.type === "store" ? "Digital storefront" : "Digital contact"}</p>
               <h1>{card.name || (card.type === "store" ? "Название магазина" : "Имя Фамилия")}</h1>
               {card.position ? <p className="preview-sub">{card.position}</p> : null}
               {card.company && card.type === "person" ? <p className="preview-company">{card.company}</p> : null}
