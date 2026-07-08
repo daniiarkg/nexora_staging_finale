@@ -79,6 +79,10 @@ export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettin
         ...defaults.landing_card.vcf_button,
         ...(settings?.landing_card?.vcf_button || {})
       },
+      socials: {
+        ...defaults.landing_card.socials,
+        ...(settings?.landing_card?.socials || {})
+      },
       phones: settings?.landing_card?.phones?.length ? settings.landing_card.phones : defaults.landing_card.phones,
       custom_fields: settings?.landing_card?.custom_fields || defaults.landing_card.custom_fields,
       products: settings?.landing_card?.products || defaults.landing_card.products

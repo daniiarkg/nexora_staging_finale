@@ -20,6 +20,7 @@ function withCardDefaults(initial?: Card): Card {
     ...initial,
     design: { ...base.design, ...(initial.design || {}) },
     vcf_button: { ...base.vcf_button, ...(initial.vcf_button || {}) },
+    socials: { ...base.socials, ...(initial.socials || {}) },
     name_translations: initial.name_translations || {},
     position_translations: initial.position_translations || {},
     phones: initial.phones?.length ? initial.phones : base.phones,
@@ -56,6 +57,10 @@ export function CardEditor({ initial }: Props) {
     const phones = [...card.phones];
     phones[index] = value;
     patch({ phones });
+  }
+
+  function setSocial(key: "instagram" | "whatsapp" | "telegram", value: string) {
+    patch({ socials: { ...(card.socials || {}), [key]: value } });
   }
 
   function setNameTranslation(language: Card["preferred_language"], value: string) {
@@ -215,6 +220,11 @@ export function CardEditor({ initial }: Props) {
           <button type="button" onClick={() => patch({ phones: [...card.phones, ""] })}>Добавить номер</button>
           <label><span>Email</span><input value={card.email} onChange={(e) => patch({ email: e.target.value })} /></label>
           <label><span>Website</span><input value={card.website} onChange={(e) => patch({ website: e.target.value })} /></label>
+          <div className="control-grid">
+            <label><span>Instagram</span><input value={card.socials.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} placeholder="nexora или https://instagram.com/nexora" /></label>
+            <label><span>WhatsApp</span><input value={card.socials.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} placeholder="+996 ... или https://wa.me/..." /></label>
+            <label><span>Telegram</span><input value={card.socials.telegram || ""} onChange={(e) => setSocial("telegram", e.target.value)} placeholder="@nexora или https://t.me/nexora" /></label>
+          </div>
           <label><span>Адрес для отображения</span><input value={card.address} onChange={(e) => patch({ address: e.target.value })} placeholder="Бишкек, ул. ..." /></label>
           <label><span>2ГИС ссылка или geo URI</span><input value={card.address_geo_uri} onChange={(e) => patch({ address_geo_uri: e.target.value })} placeholder="https://2gis.kg/... или geo:42.8746,74.5698" /></label>
         </fieldset>

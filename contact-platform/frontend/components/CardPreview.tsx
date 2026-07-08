@@ -66,11 +66,10 @@ function mapsHref(address: string, geoURI = "") {
 function socialActions(card: Card) {
   const socials = card.socials || {};
   return [
-    ["Telegram", socials.telegram],
-    ["WhatsApp", socials.whatsapp],
-    ["Instagram", socials.instagram],
-    ["LinkedIn", socials.linkedin]
-  ].filter((item): item is [string, string] => Boolean(item[1]));
+    { key: "instagram", label: "Instagram", href: socials.instagram },
+    { key: "whatsapp", label: "WhatsApp", href: socials.whatsapp },
+    { key: "telegram", label: "Telegram", href: socials.telegram }
+  ].filter((item): item is { key: "instagram" | "whatsapp" | "telegram"; label: string; href: string } => Boolean(item.href));
 }
 
 type CardPreviewProps = {
@@ -93,6 +92,32 @@ function DownloadIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="download-icon">
       <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" />
+    </svg>
+  );
+}
+
+function SocialIcon({ type }: { type: "instagram" | "whatsapp" | "telegram" }) {
+  if (type === "instagram") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="social-icon">
+        <rect x="4" y="4" width="16" height="16" rx="5" />
+        <circle cx="12" cy="12" r="3.2" />
+        <path d="M16.8 7.2h.01" />
+      </svg>
+    );
+  }
+  if (type === "whatsapp") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="social-icon">
+        <path d="M5.2 19.4 6.3 16A7.4 7.4 0 1 1 9 18.6l-3.8.8Z" />
+        <path d="M9.4 8.8c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.4l.6 1.4c.1.2 0 .5-.1.6l-.4.5c.6 1.1 1.4 1.9 2.6 2.5l.5-.5c.2-.2.4-.2.7-.1l1.4.7c.3.1.4.3.4.6v.5c0 .3-.2.6-.5.7-.5.2-1.1.3-1.8.1-2.9-.7-5.1-2.9-5.9-5.7-.2-.7 0-1.3.2-1.9Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="social-icon">
+      <path d="M21 4.5 3.8 11.3c-.8.3-.8 1.4.1 1.6l4.4 1.3 1.7 5c.2.8 1.3.9 1.7.2l2.4-3.5 4.6 3.4c.7.5 1.6.1 1.7-.8L22 5.5c.1-.7-.4-1.2-1-1Z" />
+      <path d="m8.4 14.1 9-5.5-6.6 7.4" />
     </svg>
   );
 }
@@ -223,10 +248,10 @@ export function CardPreview({ card, vcfHref = "", translations }: CardPreviewPro
             {card.email ? <a href={`mailto:${card.email}`}><span>{copy.email_label}</span><b>{card.email}</b></a> : null}
             {card.website ? <a href={externalHref(card.website)} target="_blank" rel="noreferrer"><span>{copy.website_label}</span><b>{card.website.replace(/^https?:\/\//, "")}</b></a> : null}
             {card.address || card.address_geo_uri ? <a href={mapsHref(card.address, card.address_geo_uri)} target="_blank" rel="noreferrer"><span>{copy.address_label}</span><b>{card.address || copy.open_map_label}</b></a> : null}
-            {socials.map(([label, href]) => (
-              <a key={label} href={externalHref(href)} target="_blank" rel="noreferrer">
-                <span>{label}</span>
-                <b>{href.replace(/^https?:\/\//, "")}</b>
+            {socials.map((social) => (
+              <a className="preview-social-action" key={social.key} href={externalHref(social.href)} target="_blank" rel="noreferrer" aria-label={social.label}>
+                <SocialIcon type={social.key} />
+                <b>{social.label}</b>
               </a>
             ))}
             {customFields.map((field, index) => (

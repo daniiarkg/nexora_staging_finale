@@ -433,6 +433,7 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	card.PositionTranslations = normalizeLocalizedText(card.PositionTranslations)
 	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
 	card.Website = normalizeURL(card.Website)
+	card.Socials = normalizeSocials(card.Socials)
 	card.Address = strings.TrimSpace(card.Address)
 	card.AddressGeoURI = geo.NormalizeURI(card.AddressGeoURI)
 	if card.AddressGeoURI == "" {
@@ -660,6 +661,53 @@ func normalizeLocalizedText(values models.LocalizedText) models.LocalizedText {
 		}
 	}
 	return out
+}
+
+func normalizeSocials(socials models.Socials) models.Socials {
+	return models.Socials{
+		Instagram: normalizeProfileURL(socials.Instagram, "instagram.com", "https://instagram.com/"),
+		Whatsapp:  normalizeWhatsAppURL(socials.Whatsapp),
+		Telegram:  normalizeProfileURL(socials.Telegram, "t.me", "https://t.me/"),
+		LinkedIn:  normalizeURL(socials.LinkedIn),
+	}
+}
+
+func normalizeProfileURL(value, domain, prefix string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		return value
+	}
+	value = strings.TrimPrefix(value, "@")
+	if strings.HasPrefix(value, domain+"/") || strings.HasPrefix(value, "www."+domain+"/") {
+		return "https://" + strings.TrimPrefix(value, "www.")
+	}
+	return prefix + strings.Trim(value, "/")
+}
+
+func normalizeWhatsAppURL(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		return value
+	}
+	if strings.HasPrefix(value, "wa.me/") || strings.HasPrefix(value, "www.wa.me/") {
+		return "https://" + strings.TrimPrefix(value, "www.")
+	}
+	digits := strings.Builder{}
+	for _, r := range value {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+		}
+	}
+	if digits.Len() == 0 {
+		return ""
+	}
+	return "https://wa.me/" + digits.String()
 }
 
 func normalizeMeshAnimation(value string) string {

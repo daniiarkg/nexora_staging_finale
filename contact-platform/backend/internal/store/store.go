@@ -605,6 +605,7 @@ func scanCards(rows pgx.Rows) ([]models.Card, error) {
 		card.Design = normalizeDesignConfig(card.Design)
 		card.VCFButton = normalizeVCFButton(card.VCFButton)
 		card.PreferredLanguage = normalizeLanguage(card.PreferredLanguage)
+		card.Socials = normalizeSocials(card.Socials)
 		card.NameTranslations = normalizeLocalizedText(card.NameTranslations)
 		card.PositionTranslations = normalizeLocalizedText(card.PositionTranslations)
 		cards = append(cards, card)
@@ -655,7 +656,7 @@ func replaceProducts(ctx context.Context, tx pgx.Tx, cardID string, products []m
 
 func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte, []byte, []byte, []byte) {
 	phones, _ := json.Marshal(card.Phones)
-	socials, _ := json.Marshal(card.Socials)
+	socials, _ := json.Marshal(normalizeSocials(card.Socials))
 	nameTranslations, _ := json.Marshal(normalizeLocalizedText(card.NameTranslations))
 	positionTranslations, _ := json.Marshal(normalizeLocalizedText(card.PositionTranslations))
 	design, _ := json.Marshal(normalizeDesignConfig(card.Design))
@@ -760,6 +761,7 @@ func normalizeAppSettings(settings models.AppSettings) models.AppSettings {
 	card.Company = strings.TrimSpace(card.Company)
 	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
 	card.Website = strings.TrimSpace(card.Website)
+	card.Socials = normalizeSocials(card.Socials)
 	card.Address = strings.TrimSpace(card.Address)
 	card.AddressGeoURI = geo.NormalizeURI(card.AddressGeoURI)
 	if card.AddressGeoURI == "" {
@@ -807,6 +809,53 @@ func normalizeLocalizedText(values models.LocalizedText) models.LocalizedText {
 		}
 	}
 	return out
+}
+
+func normalizeSocials(socials models.Socials) models.Socials {
+	return models.Socials{
+		Instagram: normalizeProfileURL(socials.Instagram, "instagram.com", "https://instagram.com/"),
+		Whatsapp:  normalizeWhatsAppURL(socials.Whatsapp),
+		Telegram:  normalizeProfileURL(socials.Telegram, "t.me", "https://t.me/"),
+		LinkedIn:  strings.TrimSpace(socials.LinkedIn),
+	}
+}
+
+func normalizeProfileURL(value, domain, prefix string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		return value
+	}
+	value = strings.TrimPrefix(value, "@")
+	if strings.HasPrefix(value, domain+"/") || strings.HasPrefix(value, "www."+domain+"/") {
+		return "https://" + strings.TrimPrefix(value, "www.")
+	}
+	return prefix + strings.Trim(value, "/")
+}
+
+func normalizeWhatsAppURL(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+		return value
+	}
+	if strings.HasPrefix(value, "wa.me/") || strings.HasPrefix(value, "www.wa.me/") {
+		return "https://" + strings.TrimPrefix(value, "www.")
+	}
+	digits := strings.Builder{}
+	for _, r := range value {
+		if r >= '0' && r <= '9' {
+			digits.WriteRune(r)
+		}
+	}
+	if digits.Len() == 0 {
+		return ""
+	}
+	return "https://wa.me/" + digits.String()
 }
 
 func normalizeTranslations(values models.TranslationDictionary) models.TranslationDictionary {

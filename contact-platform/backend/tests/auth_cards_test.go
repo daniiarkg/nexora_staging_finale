@@ -30,9 +30,14 @@ func TestVCFIncludesCompanyPhonesWebsiteAndAddress(t *testing.T) {
 		Email:    "test@example.com",
 		Website:  "https://example.com",
 		Address:  "Bishkek",
+		Socials: models.Socials{
+			Instagram: "https://instagram.com/acme",
+			Whatsapp:  "https://wa.me/996555123456",
+			Telegram:  "https://t.me/acme",
+		},
 	}
 	body := vcf.Render(card, "https://contact.nexora.kg/cards/test")
-	for _, expected := range []string{"ORG:Acme", "TITLE:CEO", "TEL;TYPE=CELL,VOICE:+996 555 123 456", "URL;TYPE=WORK:https://example.com", "ADR;TYPE=WORK:;;Bishkek;;;;"} {
+	for _, expected := range []string{"ORG:Acme", "TITLE:CEO", "TEL;TYPE=CELL,VOICE:+996 555 123 456", "URL;TYPE=WORK:https://example.com", "ADR;TYPE=WORK:;;Bishkek;;;;", "URL;TYPE=INSTAGRAM:https://instagram.com/acme", "URL;TYPE=WHATSAPP:https://wa.me/996555123456", "URL;TYPE=TELEGRAM:https://t.me/acme"} {
 		if !contains(body, expected) {
 			t.Fatalf("expected %q in vcf:\n%s", expected, body)
 		}

@@ -954,6 +954,28 @@ legend {
   font-weight: var(--card-font-weight, 700);
 }
 
+.preview-actions a.preview-social-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+}
+
+.preview-social-action b {
+  line-height: 1.1;
+}
+
+.social-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .preview-vcf-button {
   position: relative;
   min-height: 48px;

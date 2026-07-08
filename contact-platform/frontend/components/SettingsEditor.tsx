@@ -202,7 +202,11 @@ export function SettingsEditor() {
               <label><span>Website</span><input value={settings.landing_card.website} onChange={(event) => patchLandingCard({ website: event.target.value })} /></label>
               <label><span>Адрес для отображения</span><input value={settings.landing_card.address} onChange={(event) => patchLandingCard({ address: event.target.value })} /></label>
               <label><span>2ГИС ссылка или geo URI</span><input value={settings.landing_card.address_geo_uri} onChange={(event) => patchLandingCard({ address_geo_uri: event.target.value })} placeholder="https://2gis.kg/... или geo:42.8746,74.5698" /></label>
-              <label><span>Telegram</span><input value={settings.landing_card.socials.telegram || ""} onChange={(event) => patchLandingCard({ socials: { ...settings.landing_card.socials, telegram: event.target.value } })} /></label>
+              <div className="control-grid">
+                <label><span>Instagram</span><input value={settings.landing_card.socials.instagram || ""} onChange={(event) => patchLandingCard({ socials: { ...settings.landing_card.socials, instagram: event.target.value } })} /></label>
+                <label><span>WhatsApp</span><input value={settings.landing_card.socials.whatsapp || ""} onChange={(event) => patchLandingCard({ socials: { ...settings.landing_card.socials, whatsapp: event.target.value } })} /></label>
+                <label><span>Telegram</span><input value={settings.landing_card.socials.telegram || ""} onChange={(event) => patchLandingCard({ socials: { ...settings.landing_card.socials, telegram: event.target.value } })} /></label>
+              </div>
               <label><span>Текст VCF-кнопки</span><input value={settings.landing_card.vcf_button.label} onChange={(event) => patchLandingCard({ vcf_button: { ...settings.landing_card.vcf_button, label: event.target.value } })} /></label>
             </fieldset>
           </div>
