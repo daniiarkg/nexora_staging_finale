@@ -120,7 +120,6 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
       } as CSSProperties & Record<string, string>}
     >
       <div className="preview-card-stack">
-        {design.top_image_url ? <img className="preview-edge-image" src={design.top_image_url} alt="" /> : null}
         <article
           className={`preview-card${gradientCardClass}${cardAnimationClass}`}
           data-card-type={card.type}
@@ -139,6 +138,7 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
           <div className="preview-card-bg">
             {watermark ? <img className="preview-watermark" src={watermark} alt="" /> : null}
           </div>
+          {design.top_image_url ? <img className="preview-edge-image preview-edge-image-top" src={design.top_image_url} alt="" /> : null}
           <header className="preview-header">
             {logo ? <img className="preview-logo" src={logo} alt="Logo" /> : <span className="preview-logo-placeholder" />}
           </header>
@@ -190,8 +190,8 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
               <span>{vcfButton.label || "Скачать VCF"}</span>
             </a>
           ) : null}
+          {design.bottom_image_url ? <img className="preview-edge-image preview-edge-image-bottom" src={design.bottom_image_url} alt="" /> : null}
         </article>
-        {design.bottom_image_url ? <img className="preview-edge-image" src={design.bottom_image_url} alt="" /> : null}
       </div>
     </section>
   );
