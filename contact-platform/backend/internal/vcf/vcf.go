@@ -7,13 +7,12 @@ import (
 	"nexora/contact-platform/backend/internal/models"
 )
 
-func Render(card models.Card, publicURL string) string {
+func Render(card models.Card, _ string) string {
 	lines := []string{
 		"BEGIN:VCARD",
 		"VERSION:3.0",
 		"FN:" + esc(card.Name),
 		"ORG:" + esc(org(card)),
-		"URL:" + publicURL,
 	}
 	if card.Position != "" {
 		lines = append(lines, "TITLE:"+esc(card.Position))

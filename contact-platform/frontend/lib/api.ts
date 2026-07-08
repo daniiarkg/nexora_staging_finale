@@ -29,7 +29,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return data as T;
 }
 
-export async function uploadFile(file: File, kind: "logo" | "photo" | "product"): Promise<string> {
+export async function uploadFile(file: File, kind: "logo" | "photo" | "contact-photo" | "product"): Promise<string> {
   const form = new FormData();
   form.append("file", file);
   const response = await fetch(`/api/uploads?kind=${kind}`, {

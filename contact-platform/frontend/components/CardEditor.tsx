@@ -138,7 +138,7 @@ export function CardEditor({ initial }: Props) {
     patch({ position_translations: { ...(card.position_translations || {}), [language]: value } });
   }
 
-  async function upload(event: ChangeEvent<HTMLInputElement>, kind: "logo" | "photo", key: "logo_url" | "photo_url") {
+  async function upload(event: ChangeEvent<HTMLInputElement>, kind: "logo" | "contact-photo", key: "logo_url" | "photo_url") {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -316,7 +316,7 @@ export function CardEditor({ initial }: Props) {
 
         <fieldset>
           <legend>Медиа</legend>
-          <label><span>Фото</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => upload(e, "photo", "photo_url")} /></label>
+          <label><span>Фото</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => upload(e, "contact-photo", "photo_url")} /></label>
           <div className="media-logo-preview">
             {card.logo_url ? <img src={card.logo_url} alt="Лого профиля" /> : card.design.logo_url ? <img src={card.design.logo_url} alt="Лого дизайна" /> : <span className="field-note">Лого не задано</span>}
           </div>

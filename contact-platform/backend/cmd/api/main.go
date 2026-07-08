@@ -1,12 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	stddraw "image/draw"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"log/slog"
 	"mime"
@@ -21,6 +27,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
+	xdraw "golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
 
 	"nexora/contact-platform/backend/internal/auth"
 	"nexora/contact-platform/backend/internal/config"
@@ -395,7 +403,18 @@ func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "unsupported_file_type")
 		return
 	}
-	name := kind + "-" + randomHex(16) + ext
+	nameKind := kind
+	if kind == "contact-photo" {
+		optimized, err := optimizeContactPhoto(data)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "invalid_photo")
+			return
+		}
+		data = optimized
+		ext = ".jpg"
+		nameKind = "photo"
+	}
+	name := nameKind + "-" + randomHex(16) + ext
 	path := filepath.Join(a.cfg.StorageDir, "uploads", name)
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, "upload_failed")
@@ -664,6 +683,54 @@ func allowedUpload(kind, filename string, data []byte) (string, bool) {
 		return extensions[0], true
 	}
 	return "", false
+}
+
+const (
+	contactPhotoSize     = 512
+	contactPhotoMaxBytes = 200 * 1024
+)
+
+func optimizeContactPhoto(data []byte) ([]byte, error) {
+	source, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	square := centerCropSquare(source)
+	resized := image.NewRGBA(image.Rect(0, 0, contactPhotoSize, contactPhotoSize))
+	stddraw.Draw(resized, resized.Bounds(), &image.Uniform{color.White}, image.Point{}, stddraw.Src)
+	xdraw.CatmullRom.Scale(resized, resized.Bounds(), square, square.Bounds(), xdraw.Src, nil)
+	return encodeJPEGUnderLimit(resized, contactPhotoMaxBytes)
+}
+
+func centerCropSquare(source image.Image) *image.RGBA {
+	bounds := source.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	size := width
+	if height < size {
+		size = height
+	}
+	left := bounds.Min.X + (width-size)/2
+	top := bounds.Min.Y + (height-size)/2
+	square := image.NewRGBA(image.Rect(0, 0, size, size))
+	stddraw.Draw(square, square.Bounds(), &image.Uniform{color.White}, image.Point{}, stddraw.Src)
+	stddraw.Draw(square, square.Bounds(), source, image.Pt(left, top), stddraw.Over)
+	return square
+}
+
+func encodeJPEGUnderLimit(img image.Image, maxBytes int) ([]byte, error) {
+	var last []byte
+	for quality := 85; quality >= 5; quality -= 5 {
+		buffer := bytes.Buffer{}
+		if err := jpeg.Encode(&buffer, img, &jpeg.Options{Quality: quality}); err != nil {
+			return nil, err
+		}
+		last = buffer.Bytes()
+		if len(last) <= maxBytes {
+			return last, nil
+		}
+	}
+	return nil, fmt.Errorf("optimized contact photo exceeds %d bytes, got %d", maxBytes, len(last))
 }
 
 func looksLikeSVG(data []byte) bool {

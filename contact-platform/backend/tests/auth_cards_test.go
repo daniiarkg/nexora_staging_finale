@@ -42,6 +42,9 @@ func TestVCFIncludesCompanyPhonesWebsiteAndAddress(t *testing.T) {
 			t.Fatalf("expected %q in vcf:\n%s", expected, body)
 		}
 	}
+	if contains(body, "URL:https://contact.nexora.kg/cards/test") {
+		t.Fatalf("card public URL must not be included in vcf:\n%s", body)
+	}
 }
 
 func contains(body, needle string) bool {
