@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
 
 	"nexora/contact-platform/backend/internal/auth"
@@ -268,12 +269,41 @@ func (a *app) handleCreateCard(w http.ResponseWriter, r *http.Request) {
 	if card.Slug == "" {
 		card.Slug = slugify(card.Name) + "-" + randomHex(3)
 	}
-	created, err := a.store.CreateCard(r.Context(), card)
+	created, err := a.createCardWithUniqueSlug(r.Context(), card)
 	if err != nil {
+		a.logger.Error("card_create_failed", "error", err, "slug", card.Slug, "owner_id", card.OwnerID)
+		if isUniqueConstraint(err, "cards_slug_key") {
+			httpx.Validation(w, http.StatusBadRequest, "invalid_card_fields", []httpx.FieldError{
+				{Field: "slug", Message: "Slug уже занят. Укажите другой slug."},
+			})
+			return
+		}
 		httpx.Error(w, http.StatusBadRequest, "card_create_failed")
 		return
 	}
 	httpx.JSON(w, http.StatusCreated, map[string]any{"card": created})
+}
+
+func (a *app) createCardWithUniqueSlug(ctx context.Context, card models.Card) (models.Card, error) {
+	baseSlug := strings.Trim(strings.TrimSpace(card.Slug), "-")
+	if baseSlug == "" {
+		baseSlug = "card"
+	}
+	var lastErr error
+	for attempt := 0; attempt < 8; attempt++ {
+		if attempt > 0 {
+			card.Slug = baseSlug + "-" + randomHex(3)
+		}
+		created, err := a.store.CreateCard(ctx, card)
+		if err == nil {
+			return created, nil
+		}
+		if !isUniqueConstraint(err, "cards_slug_key") {
+			return models.Card{}, err
+		}
+		lastErr = err
+	}
+	return models.Card{}, lastErr
 }
 
 func (a *app) handleCardRoute(w http.ResponseWriter, r *http.Request) {
@@ -886,10 +916,43 @@ func normalizeURL(value string) string {
 	return value
 }
 
+var cyrillicSlugMap = map[rune]string{
+	'а': "a", 'б': "b", 'в': "v", 'г': "g", 'д': "d", 'е': "e", 'ё': "e",
+	'ж': "zh", 'з': "z", 'и': "i", 'й': "i", 'к': "k", 'л': "l", 'м': "m",
+	'н': "n", 'о': "o", 'п': "p", 'р': "r", 'с': "s", 'т': "t", 'у': "u",
+	'ф': "f", 'х': "h", 'ц': "ts", 'ч': "ch", 'ш': "sh", 'щ': "shch",
+	'ъ': "", 'ы': "y", 'ь': "", 'э': "e", 'ю': "yu", 'я': "ya",
+	'ң': "n", 'ө': "o", 'ү': "u",
+}
+
 func slugify(value string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
-	value = regexp.MustCompile(`[^a-z0-9а-яё]+`).ReplaceAllString(value, "-")
-	value = strings.Trim(value, "-")
+	if value == "" {
+		return ""
+	}
+	var builder strings.Builder
+	lastDash := false
+	for _, symbol := range value {
+		token := ""
+		switch {
+		case symbol >= 'a' && symbol <= 'z':
+			token = string(symbol)
+		case symbol >= '0' && symbol <= '9':
+			token = string(symbol)
+		default:
+			token = cyrillicSlugMap[symbol]
+		}
+		if token == "" {
+			if builder.Len() > 0 && !lastDash {
+				builder.WriteByte('-')
+				lastDash = true
+			}
+			continue
+		}
+		builder.WriteString(token)
+		lastDash = false
+	}
+	value = strings.Trim(builder.String(), "-")
 	if value == "" {
 		return "card"
 	}
@@ -920,6 +983,14 @@ func randomHex(size int) string {
 	buf := make([]byte, size)
 	_, _ = rand.Read(buf)
 	return hex.EncodeToString(buf)
+}
+
+func isUniqueConstraint(err error, constraint string) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	return pgErr.Code == "23505" && (constraint == "" || pgErr.ConstraintName == constraint)
 }
 
 func newValkeyClient(rawURL string) (*redis.Client, error) {
