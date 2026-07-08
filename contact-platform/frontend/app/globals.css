@@ -218,9 +218,9 @@ legend {
 }
 
 .site-brand img {
-  width: min(var(--landing-logo-min-width, 154px), 100%);
-  min-width: min(var(--landing-logo-min-width, 154px), 100%);
-  max-height: 36px;
+  width: var(--landing-logo-min-width, 154px);
+  max-width: min(58vw, 100%);
+  height: auto;
   object-fit: contain;
   object-position: left center;
 }
@@ -757,11 +757,9 @@ legend {
 }
 
 .preview-logo {
-  width: min(var(--card-logo-min-width, 250px), 70%);
-  min-width: min(var(--card-logo-min-width, 250px), 70%);
-  max-width: 70%;
+  width: min(var(--card-logo-min-width, 250px), 100%);
+  max-width: 100%;
   height: auto;
-  max-height: 92px;
   object-fit: contain;
   object-position: left center;
 }
@@ -978,7 +976,6 @@ legend {
   }
 
   .preview-logo {
-    width: min(var(--card-logo-min-width, 210px), 72%);
-    min-width: min(var(--card-logo-min-width, 210px), 72%);
+    width: min(var(--card-logo-min-width, 210px), 100%);
   }
 }

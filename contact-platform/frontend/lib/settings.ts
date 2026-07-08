@@ -48,8 +48,8 @@ export function defaultSettings(): AppSettings {
 export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettings {
   const defaults = defaultSettings();
   const landingLogo = settings?.landing_logo_url || defaults.landing_logo_url;
-  const landingLogoMinWidth = boundedNumber(settings?.landing_logo_min_width, defaults.landing_logo_min_width, 80, 420);
-  const landingCardLogoMinWidth = boundedNumber(settings?.landing_card_logo_min_width, defaults.landing_card_logo_min_width, 120, 420);
+  const landingLogoMinWidth = editableNumber(settings?.landing_logo_min_width, defaults.landing_logo_min_width);
+  const landingCardLogoMinWidth = editableNumber(settings?.landing_card_logo_min_width, defaults.landing_card_logo_min_width);
   return {
     ...defaults,
     ...(settings || {}),
@@ -77,8 +77,8 @@ export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettin
   };
 }
 
-function boundedNumber(value: number | undefined, fallback: number, min: number, max: number) {
+function editableNumber(value: number | undefined, fallback: number) {
   const next = Number(value || fallback);
   if (!Number.isFinite(next)) return fallback;
-  return Math.min(Math.max(next, min), max);
+  return next;
 }
