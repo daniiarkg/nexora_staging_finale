@@ -760,16 +760,21 @@ legend {
   position: relative;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
+  justify-content: flex-start;
   min-height: 92px;
+  padding-right: 72px;
   margin-bottom: 15px;
 }
 
 .language-switcher {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
   z-index: 2;
-  flex: 0 0 auto;
+}
+
+.language-switcher[open] {
+  z-index: 5;
 }
 
 .language-switcher summary {
@@ -778,6 +783,7 @@ legend {
   align-items: center;
   justify-content: center;
   gap: 7px;
+  width: 62px;
   min-height: 34px;
   border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
   border-radius: 8px;
@@ -1042,6 +1048,20 @@ legend {
 
   .preview-card {
     --card-padding: 20px;
+  }
+
+  .preview-header {
+    padding-right: 66px;
+  }
+
+  .language-switcher summary {
+    width: 58px;
+    min-height: 32px;
+    padding: 0 8px;
+  }
+
+  .language-menu {
+    min-width: 136px;
   }
 
   .preview-logo {
