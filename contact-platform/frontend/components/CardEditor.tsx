@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
-import { apiFetch, uploadFile } from "@/lib/api";
+import { ApiError, apiFetch, uploadFile } from "@/lib/api";
 import { languages, defaultTranslations } from "@/lib/i18n";
 import { withSettingsDefaults } from "@/lib/settings";
 import type { AppSettings, Card, CustomField, Design, DesignConfig, Product, TranslationDictionary } from "@/lib/types";
@@ -11,6 +11,8 @@ import { CardPreview, emptyCard } from "./CardPreview";
 type Props = {
   initial?: Card;
 };
+
+type FieldErrors = Record<string, string>;
 
 function withCardDefaults(initial?: Card): Card {
   const base = emptyCard();
@@ -29,10 +31,74 @@ function withCardDefaults(initial?: Card): Card {
   };
 }
 
+function validateCard(card: Card): FieldErrors {
+  const errors: FieldErrors = {};
+  const nameLabel = card.type === "store" ? "Название магазина" : "ФИО";
+  if (!card.name.trim()) errors.name = `${nameLabel} обязательно.`;
+  if (card.type === "person" && !card.position.trim()) errors.position = "Должность обязательна для контактной карточки.";
+  const phones = (card.phones || []).map((phone) => phone.trim()).filter(Boolean);
+  if (!phones.length) {
+    errors.phones = "Добавьте хотя бы один номер телефона.";
+  } else if (phones.some((phone) => digitCount(phone) < 5)) {
+    errors.phones = "Номер телефона должен содержать минимум 5 цифр.";
+  }
+  if (card.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(card.email.trim())) {
+    errors.email = "Email указан неверно.";
+  }
+  if (card.website.trim() && !looksLikeURL(card.website.trim())) {
+    errors.website = "Сайт указан неверно. Пример: nexora.kg или https://nexora.kg.";
+  }
+  if (card.socials.instagram?.trim() && !looksLikeSocialProfile(card.socials.instagram.trim(), ["instagram.com"])) {
+    errors.instagram = "Instagram должен быть username или ссылкой без пробелов.";
+  }
+  if (card.socials.telegram?.trim() && !looksLikeSocialProfile(card.socials.telegram.trim(), ["t.me", "telegram.me"])) {
+    errors.telegram = "Telegram должен быть username или ссылкой без пробелов.";
+  }
+  if (card.socials.whatsapp?.trim() && (hasWhitespace(card.socials.whatsapp.trim()) || (!looksLikeURL(card.socials.whatsapp.trim()) && digitCount(card.socials.whatsapp) < 5))) {
+    errors.whatsapp = "WhatsApp должен быть номером телефона или ссылкой.";
+  }
+  return errors;
+}
+
+function digitCount(value: string) {
+  return (value.match(/\d/g) || []).length;
+}
+
+function hasWhitespace(value: string) {
+  return /\s/.test(value);
+}
+
+function looksLikeURL(value: string) {
+  if (hasWhitespace(value)) return false;
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      return Boolean(url.hostname);
+    } catch {
+      return false;
+    }
+  }
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+([/?#].*)?$/i.test(value);
+}
+
+function looksLikeSocialProfile(value: string, allowedDomains: string[]) {
+  if (hasWhitespace(value)) return false;
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const host = new URL(value).hostname.replace(/^www\./i, "").toLowerCase();
+      return allowedDomains.includes(host);
+    } catch {
+      return false;
+    }
+  }
+  return /^@?[a-z0-9._-]+$/i.test(value);
+}
+
 export function CardEditor({ initial }: Props) {
   const router = useRouter();
   const [card, setCard] = useState<Card>(() => withCardDefaults(initial));
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [designs, setDesigns] = useState<Design[]>([]);
   const [selectedDesignId, setSelectedDesignId] = useState(initial?.design_id || "");
@@ -51,6 +117,7 @@ export function CardEditor({ initial }: Props) {
 
   function patch(next: Partial<Card>) {
     setCard((current) => ({ ...current, ...next }));
+    setError("");
   }
 
   function setPhone(index: number, value: string) {
@@ -145,6 +212,14 @@ export function CardEditor({ initial }: Props) {
   async function save(status = card.status) {
     setSaving(true);
     setError("");
+    setFieldErrors({});
+    const localErrors = validateCard(card);
+    if (Object.keys(localErrors).length) {
+      setFieldErrors(localErrors);
+      setError("Заполните обязательные поля и исправьте ошибки.");
+      setSaving(false);
+      return;
+    }
     try {
       const payload = { ...card, status };
       const result = card.id
@@ -153,10 +228,19 @@ export function CardEditor({ initial }: Props) {
       setCard(result.card);
       if (!card.id) router.replace(`/dashboard/cards/${result.card.id}/edit`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "save_failed");
+      if (err instanceof ApiError && err.fields.length) {
+        setFieldErrors(Object.fromEntries(err.fields.map((field) => [field.field, field.message])));
+        setError("Заполните обязательные поля и исправьте ошибки.");
+      } else {
+        setError(err instanceof Error ? err.message : "save_failed");
+      }
     } finally {
       setSaving(false);
     }
+  }
+
+  function fieldError(field: string) {
+    return fieldErrors[field] ? <small className="field-error">{fieldErrors[field]}</small> : null;
   }
 
   return (
@@ -178,9 +262,9 @@ export function CardEditor({ initial }: Props) {
           <legend>Тип и основные данные</legend>
           <label><span>Тип</span><select value={card.type} onChange={(e) => patch({ type: e.target.value as Card["type"] })}><option value="person">Контакт</option><option value="store">Магазин</option></select></label>
           <label><span>Основной язык карточки</span><select value={card.preferred_language} onChange={(e) => patch({ preferred_language: e.target.value as Card["preferred_language"] })}>{languages.map((language) => <option value={language.code} key={language.code}>{language.label}</option>)}</select></label>
-          <label><span>{card.type === "store" ? "Название магазина" : "ФИО"}</span><input value={card.name} onChange={(e) => patch({ name: e.target.value })} /></label>
-          <label><span>{card.type === "store" ? "Описание" : "Должность"}</span><input value={card.position} onChange={(e) => patch({ position: e.target.value })} /></label>
-          <label><span>Компания</span><input value={card.company} onChange={(e) => patch({ company: e.target.value })} /></label>
+          <label><span>{card.type === "store" ? "Название магазина" : "ФИО"}</span><input value={card.name} onChange={(e) => patch({ name: e.target.value })} />{fieldError("name")}</label>
+          <label><span>{card.type === "store" ? "Описание" : "Должность"}</span><input value={card.position} onChange={(e) => patch({ position: e.target.value })} />{fieldError("position")}</label>
+          <label><span>Компания (необязательно)</span><input value={card.company} onChange={(e) => patch({ company: e.target.value })} /></label>
           <label><span>Slug</span><input value={card.slug} onChange={(e) => patch({ slug: e.target.value })} placeholder="auto" /></label>
         </fieldset>
 
@@ -217,13 +301,14 @@ export function CardEditor({ initial }: Props) {
               <button type="button" onClick={() => patch({ phones: card.phones.filter((_, i) => i !== index) })} disabled={card.phones.length === 1}>Удалить</button>
             </div>
           ))}
+          {fieldError("phones")}
           <button type="button" onClick={() => patch({ phones: [...card.phones, ""] })}>Добавить номер</button>
-          <label><span>Email</span><input value={card.email} onChange={(e) => patch({ email: e.target.value })} /></label>
-          <label><span>Website</span><input value={card.website} onChange={(e) => patch({ website: e.target.value })} /></label>
+          <label><span>Email</span><input value={card.email} onChange={(e) => patch({ email: e.target.value })} />{fieldError("email")}</label>
+          <label><span>Website</span><input value={card.website} onChange={(e) => patch({ website: e.target.value })} />{fieldError("website")}</label>
           <div className="control-grid">
-            <label><span>Instagram</span><input value={card.socials.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} placeholder="nexora или https://instagram.com/nexora" /></label>
-            <label><span>WhatsApp</span><input value={card.socials.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} placeholder="+996 ... или https://wa.me/..." /></label>
-            <label><span>Telegram</span><input value={card.socials.telegram || ""} onChange={(e) => setSocial("telegram", e.target.value)} placeholder="@nexora или https://t.me/nexora" /></label>
+            <label><span>Instagram</span><input value={card.socials.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} placeholder="nexora или https://instagram.com/nexora" />{fieldError("instagram")}</label>
+            <label><span>WhatsApp</span><input value={card.socials.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} placeholder="+996 ... или https://wa.me/..." />{fieldError("whatsapp")}</label>
+            <label><span>Telegram</span><input value={card.socials.telegram || ""} onChange={(e) => setSocial("telegram", e.target.value)} placeholder="@nexora или https://t.me/nexora" />{fieldError("telegram")}</label>
           </div>
           <label><span>Адрес для отображения</span><input value={card.address} onChange={(e) => patch({ address: e.target.value })} placeholder="Бишкек, ул. ..." /></label>
           <label><span>2ГИС ссылка или geo URI</span><input value={card.address_geo_uri} onChange={(e) => patch({ address_geo_uri: e.target.value })} placeholder="https://2gis.kg/... или geo:42.8746,74.5698" /></label>

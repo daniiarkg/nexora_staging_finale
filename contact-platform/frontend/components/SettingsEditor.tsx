@@ -190,7 +190,7 @@ export function SettingsEditor() {
                   <label><span>Должность / {language.label}</span><input value={settings.landing_card.position_translations?.[language.code] || ""} onChange={(event) => patchLandingLocalizedText("position_translations", language.code, event.target.value)} /></label>
                 </div>
               ))}
-              <label><span>Компания</span><input value={settings.landing_card.company} onChange={(event) => patchLandingCard({ company: event.target.value })} /></label>
+              <label><span>Компания (необязательно)</span><input value={settings.landing_card.company} onChange={(event) => patchLandingCard({ company: event.target.value })} /></label>
               {settings.landing_card.phones.map((phone, index) => (
                 <div className="inline-row" key={index}>
                   <input value={phone} onChange={(event) => patchPhone(index, event.target.value)} placeholder="+996 ..." />

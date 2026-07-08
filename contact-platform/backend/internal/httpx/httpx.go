@@ -6,7 +6,13 @@ import (
 )
 
 type ErrorBody struct {
-	Error string `json:"error"`
+	Error  string       `json:"error"`
+	Fields []FieldError `json:"fields,omitempty"`
+}
+
+type FieldError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
 
 func JSON(w http.ResponseWriter, status int, body any) {
@@ -17,6 +23,10 @@ func JSON(w http.ResponseWriter, status int, body any) {
 
 func Error(w http.ResponseWriter, status int, code string) {
 	JSON(w, status, ErrorBody{Error: code})
+}
+
+func Validation(w http.ResponseWriter, status int, code string, fields []FieldError) {
+	JSON(w, status, ErrorBody{Error: code, Fields: fields})
 }
 
 func DecodeJSON(r *http.Request, dst any, maxBytes int64) error {

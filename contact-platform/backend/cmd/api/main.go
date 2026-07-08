@@ -12,6 +12,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -433,6 +434,7 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	card.PositionTranslations = normalizeLocalizedText(card.PositionTranslations)
 	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
 	card.Website = normalizeURL(card.Website)
+	rawSocials := card.Socials
 	card.Socials = normalizeSocials(card.Socials)
 	card.Address = strings.TrimSpace(card.Address)
 	card.AddressGeoURI = geo.NormalizeURI(card.AddressGeoURI)
@@ -451,11 +453,82 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	card.CustomFields = normalizeFields(card.CustomFields)
 	card.Design = normalizeDesign(card.Design)
 	card.VCFButton = normalizeVCFButton(card.VCFButton)
-	if card.Name == "" || len(card.Phones) == 0 || (card.Type == models.CardTypePerson && card.Position == "") {
-		httpx.Error(w, http.StatusBadRequest, "missing_required_fields")
+	if fields := validateCard(card, rawSocials); len(fields) > 0 {
+		httpx.Validation(w, http.StatusBadRequest, "invalid_card_fields", fields)
 		return card, false
 	}
 	return card, true
+}
+
+func validateCard(card models.Card, rawSocials models.Socials) []httpx.FieldError {
+	fields := []httpx.FieldError{}
+	add := func(field, message string) {
+		fields = append(fields, httpx.FieldError{Field: field, Message: message})
+	}
+	if card.Name == "" {
+		if card.Type == models.CardTypeStore {
+			add("name", "Название магазина обязательно.")
+		} else {
+			add("name", "ФИО обязательно.")
+		}
+	}
+	if card.Type == models.CardTypePerson && card.Position == "" {
+		add("position", "Должность обязательна для контактной карточки.")
+	}
+	if len(card.Phones) == 0 {
+		add("phones", "Добавьте хотя бы один номер телефона.")
+	} else {
+		for _, phone := range card.Phones {
+			if digitCount(phone) < 5 {
+				add("phones", "Номер телефона должен содержать минимум 5 цифр.")
+				break
+			}
+		}
+	}
+	if card.Email != "" && !validEmail(card.Email) {
+		add("email", "Email указан неверно.")
+	}
+	if card.Website != "" && !validHTTPURL(card.Website) {
+		add("website", "Сайт указан неверно. Пример: nexora.kg или https://nexora.kg.")
+	}
+	if strings.TrimSpace(rawSocials.Instagram) != "" && (hasWhitespace(rawSocials.Instagram) || !validHTTPURL(card.Socials.Instagram)) {
+		add("instagram", "Instagram должен быть username или ссылкой без пробелов.")
+	}
+	if strings.TrimSpace(rawSocials.Telegram) != "" && (hasWhitespace(rawSocials.Telegram) || !validHTTPURL(card.Socials.Telegram)) {
+		add("telegram", "Telegram должен быть username или ссылкой без пробелов.")
+	}
+	if strings.TrimSpace(rawSocials.Whatsapp) != "" {
+		if hasWhitespace(rawSocials.Whatsapp) || card.Socials.Whatsapp == "" || !validHTTPURL(card.Socials.Whatsapp) {
+			add("whatsapp", "WhatsApp должен быть номером телефона или ссылкой.")
+		}
+	}
+	return fields
+}
+
+func validEmail(value string) bool {
+	return regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`).MatchString(value)
+}
+
+func validHTTPURL(value string) bool {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" {
+		return false
+	}
+	return parsed.Scheme == "http" || parsed.Scheme == "https"
+}
+
+func hasWhitespace(value string) bool {
+	return strings.ContainsAny(strings.TrimSpace(value), " \t\r\n")
+}
+
+func digitCount(value string) int {
+	count := 0
+	for _, r := range value {
+		if r >= '0' && r <= '9' {
+			count++
+		}
+	}
+	return count
 }
 
 func (a *app) issueSession(w http.ResponseWriter, user models.User) {

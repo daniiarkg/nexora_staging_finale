@@ -156,6 +156,13 @@ legend {
   margin: 0;
 }
 
+.field-error {
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .form-success {
   color: var(--accent);
   font-weight: 800;

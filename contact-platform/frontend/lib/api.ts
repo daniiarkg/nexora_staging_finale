@@ -1,3 +1,18 @@
+export type ApiFieldError = {
+  field: string;
+  message: string;
+};
+
+export class ApiError extends Error {
+  fields: ApiFieldError[];
+
+  constructor(message: string, fields: ApiFieldError[] = []) {
+    super(message);
+    this.name = "ApiError";
+    this.fields = fields;
+  }
+}
+
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     credentials: "include",
@@ -9,7 +24,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || "request_failed");
+    throw new ApiError(data.error || "request_failed", Array.isArray(data.fields) ? data.fields : []);
   }
   return data as T;
 }
