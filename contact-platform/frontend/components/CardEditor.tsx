@@ -20,6 +20,8 @@ function withCardDefaults(initial?: Card): Card {
     ...initial,
     design: { ...base.design, ...(initial.design || {}) },
     vcf_button: { ...base.vcf_button, ...(initial.vcf_button || {}) },
+    name_translations: initial.name_translations || {},
+    position_translations: initial.position_translations || {},
     phones: initial.phones?.length ? initial.phones : base.phones,
     custom_fields: initial.custom_fields || [],
     products: initial.products || []
@@ -54,6 +56,14 @@ export function CardEditor({ initial }: Props) {
     const phones = [...card.phones];
     phones[index] = value;
     patch({ phones });
+  }
+
+  function setNameTranslation(language: Card["preferred_language"], value: string) {
+    patch({ name_translations: { ...(card.name_translations || {}), [language]: value } });
+  }
+
+  function setPositionTranslation(language: Card["preferred_language"], value: string) {
+    patch({ position_translations: { ...(card.position_translations || {}), [language]: value } });
   }
 
   async function upload(event: ChangeEvent<HTMLInputElement>, kind: "logo" | "photo", key: "logo_url" | "photo_url") {
@@ -167,6 +177,31 @@ export function CardEditor({ initial }: Props) {
           <label><span>{card.type === "store" ? "Описание" : "Должность"}</span><input value={card.position} onChange={(e) => patch({ position: e.target.value })} /></label>
           <label><span>Компания</span><input value={card.company} onChange={(e) => patch({ company: e.target.value })} /></label>
           <label><span>Slug</span><input value={card.slug} onChange={(e) => patch({ slug: e.target.value })} placeholder="auto" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>ФИО и должность на языках</legend>
+          <p className="field-note">Опционально. Если поле для выбранного языка пустое, на карточке будет показано основное значение.</p>
+          {languages.map((language) => (
+            <div className="stack-card" key={language.code}>
+              <label>
+                <span>ФИО / {language.label}</span>
+                <input
+                  value={card.name_translations?.[language.code] || ""}
+                  onChange={(e) => setNameTranslation(language.code, e.target.value)}
+                  placeholder={card.name || "ФИО"}
+                />
+              </label>
+              <label>
+                <span>Должность / {language.label}</span>
+                <input
+                  value={card.position_translations?.[language.code] || ""}
+                  onChange={(e) => setPositionTranslation(language.code, e.target.value)}
+                  placeholder={card.position || "Должность"}
+                />
+              </label>
+            </div>
+          ))}
         </fieldset>
 
         <fieldset>

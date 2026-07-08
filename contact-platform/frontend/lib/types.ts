@@ -21,6 +21,8 @@ export type TranslationCopy = Record<TranslationKey, string>;
 
 export type TranslationDictionary = Record<LanguageCode, TranslationCopy>;
 
+export type LocalizedText = Partial<Record<LanguageCode, string>>;
+
 export type User = {
   id: string;
   email: string;
@@ -106,7 +108,9 @@ export type Card = {
   status: "draft" | "published";
   preferred_language: LanguageCode;
   name: string;
+  name_translations: LocalizedText;
   position: string;
+  position_translations: LocalizedText;
   company: string;
   email: string;
   website: string;

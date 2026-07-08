@@ -44,6 +44,15 @@ export function SettingsEditor() {
     patchLandingCard({ phones });
   }
 
+  function patchLandingLocalizedText(key: "name_translations" | "position_translations", language: LanguageCode, value: string) {
+    patchLandingCard({
+      [key]: {
+        ...(settings.landing_card[key] || {}),
+        [language]: value
+      }
+    } as Partial<Card>);
+  }
+
   function patchTranslation(language: LanguageCode, key: TranslationKey, value: string) {
     patch({
       translations: {
@@ -175,6 +184,12 @@ export function SettingsEditor() {
               <label><span>Тип</span><select value={settings.landing_card.type} onChange={(event) => patchLandingCard({ type: event.target.value as Card["type"] })}><option value="person">Контакт</option><option value="store">Магазин</option></select></label>
               <label><span>Имя / название</span><input value={settings.landing_card.name} onChange={(event) => patchLandingCard({ name: event.target.value })} /></label>
               <label><span>Должность / описание</span><input value={settings.landing_card.position} onChange={(event) => patchLandingCard({ position: event.target.value })} /></label>
+              {languages.map((language) => (
+                <div className="stack-card" key={language.code}>
+                  <label><span>Имя / {language.label}</span><input value={settings.landing_card.name_translations?.[language.code] || ""} onChange={(event) => patchLandingLocalizedText("name_translations", language.code, event.target.value)} /></label>
+                  <label><span>Должность / {language.label}</span><input value={settings.landing_card.position_translations?.[language.code] || ""} onChange={(event) => patchLandingLocalizedText("position_translations", language.code, event.target.value)} /></label>
+                </div>
+              ))}
               <label><span>Компания</span><input value={settings.landing_card.company} onChange={(event) => patchLandingCard({ company: event.target.value })} /></label>
               {settings.landing_card.phones.map((phone, index) => (
                 <div className="inline-row" key={index}>

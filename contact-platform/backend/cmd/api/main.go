@@ -427,8 +427,10 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 		return card, false
 	}
 	card.Name = strings.TrimSpace(card.Name)
+	card.NameTranslations = normalizeLocalizedText(card.NameTranslations)
 	card.Company = strings.TrimSpace(card.Company)
 	card.Position = strings.TrimSpace(card.Position)
+	card.PositionTranslations = normalizeLocalizedText(card.PositionTranslations)
 	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
 	card.Website = normalizeURL(card.Website)
 	card.Address = strings.TrimSpace(card.Address)
@@ -648,6 +650,16 @@ func normalizeLanguage(value string) string {
 	default:
 		return models.LanguageRU
 	}
+}
+
+func normalizeLocalizedText(values models.LocalizedText) models.LocalizedText {
+	out := models.LocalizedText{}
+	for _, language := range []string{models.LanguageRU, models.LanguageEN, models.LanguageKY} {
+		if value := strings.TrimSpace(values[language]); value != "" {
+			out[language] = value
+		}
+	}
+	return out
 }
 
 func normalizeMeshAnimation(value string) string {

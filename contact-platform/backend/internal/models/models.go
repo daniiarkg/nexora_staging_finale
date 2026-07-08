@@ -21,6 +21,8 @@ type TranslationCopy map[string]string
 
 type TranslationDictionary map[string]TranslationCopy
 
+type LocalizedText map[string]string
+
 type User struct {
 	ID           string    `json:"id"`
 	Email        string    `json:"email"`
@@ -97,32 +99,34 @@ type VCFButton struct {
 }
 
 type Card struct {
-	ID                string        `json:"id"`
-	OwnerID           string        `json:"owner_id"`
-	Slug              string        `json:"slug"`
-	Type              string        `json:"type"`
-	Status            string        `json:"status"`
-	PreferredLanguage string        `json:"preferred_language"`
-	Name              string        `json:"name"`
-	Position          string        `json:"position,omitempty"`
-	Company           string        `json:"company,omitempty"`
-	Email             string        `json:"email,omitempty"`
-	Website           string        `json:"website,omitempty"`
-	Address           string        `json:"address,omitempty"`
-	AddressGeoURI     string        `json:"address_geo_uri,omitempty"`
-	Phones            []string      `json:"phones"`
-	Socials           Socials       `json:"socials"`
-	PhotoURL          string        `json:"photo_url,omitempty"`
-	LogoURL           string        `json:"logo_url,omitempty"`
-	HideLogo          bool          `json:"hide_logo"`
-	DesignID          string        `json:"design_id,omitempty"`
-	Design            DesignConfig  `json:"design"`
-	VCFButton         VCFButton     `json:"vcf_button"`
-	CustomFields      []CustomField `json:"custom_fields"`
-	Products          []Product     `json:"products,omitempty"`
-	CreatedAt         time.Time     `json:"created_at"`
-	UpdatedAt         time.Time     `json:"updated_at"`
-	PublishedAt       *time.Time    `json:"published_at,omitempty"`
+	ID                   string        `json:"id"`
+	OwnerID              string        `json:"owner_id"`
+	Slug                 string        `json:"slug"`
+	Type                 string        `json:"type"`
+	Status               string        `json:"status"`
+	PreferredLanguage    string        `json:"preferred_language"`
+	Name                 string        `json:"name"`
+	NameTranslations     LocalizedText `json:"name_translations"`
+	Position             string        `json:"position,omitempty"`
+	PositionTranslations LocalizedText `json:"position_translations"`
+	Company              string        `json:"company,omitempty"`
+	Email                string        `json:"email,omitempty"`
+	Website              string        `json:"website,omitempty"`
+	Address              string        `json:"address,omitempty"`
+	AddressGeoURI        string        `json:"address_geo_uri,omitempty"`
+	Phones               []string      `json:"phones"`
+	Socials              Socials       `json:"socials"`
+	PhotoURL             string        `json:"photo_url,omitempty"`
+	LogoURL              string        `json:"logo_url,omitempty"`
+	HideLogo             bool          `json:"hide_logo"`
+	DesignID             string        `json:"design_id,omitempty"`
+	Design               DesignConfig  `json:"design"`
+	VCFButton            VCFButton     `json:"vcf_button"`
+	CustomFields         []CustomField `json:"custom_fields"`
+	Products             []Product     `json:"products,omitempty"`
+	CreatedAt            time.Time     `json:"created_at"`
+	UpdatedAt            time.Time     `json:"updated_at"`
+	PublishedAt          *time.Time    `json:"published_at,omitempty"`
 }
 
 type Product struct {

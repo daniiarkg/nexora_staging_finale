@@ -13,7 +13,9 @@ export function emptyCard(): Card {
     status: "draft",
     preferred_language: "ru",
     name: "",
+    name_translations: {},
     position: "",
+    position_translations: {},
     company: "",
     email: "",
     website: "",
@@ -95,6 +97,10 @@ function DownloadIcon() {
   );
 }
 
+function localizedValue(values: Card["name_translations"] | undefined, language: LanguageCode, fallback: string) {
+  return values?.[language]?.trim() || fallback;
+}
+
 function LanguageSwitcher({ language, copy, onChange }: { language: LanguageCode; copy: TranslationCopy; onChange: (language: LanguageCode) => void }) {
   const labels: Record<LanguageCode, string> = {
     ru: copy.language_ru,
@@ -147,6 +153,8 @@ export function CardPreview({ card, vcfHref = "", translations }: CardPreviewPro
   const socials = socialActions(card);
   const vcfButton = card.vcf_button || { enabled: true, label: "Скачать VCF" };
   const vcfLabel = vcfLabelFor(vcfButton.label, copy);
+  const displayName = localizedValue(card.name_translations, language, card.name);
+  const position = localizedValue(card.position_translations, language, card.position);
   const fontScale = Math.min(Math.max(design.font_size || 100, 82), 122) / 100;
   const stageAnimationClass = design.background_type === "mesh" ? meshAnimationClass(design.background_mesh.animation) : "";
   const cardAnimationClass = design.card_background_type === "mesh" ? meshAnimationClass(design.card_mesh.animation) : "";
@@ -187,10 +195,10 @@ export function CardPreview({ card, vcfHref = "", translations }: CardPreviewPro
             <LanguageSwitcher language={language} copy={copy} onChange={setLanguage} />
           </header>
           <div className="preview-identity">
-            {card.photo_url ? <img className="preview-avatar" src={card.photo_url} alt={card.name} /> : null}
+            {card.photo_url ? <img className="preview-avatar" src={card.photo_url} alt={displayName || card.name} /> : null}
             <div>
-              <h1>{card.name || (card.type === "store" ? copy.store_name_placeholder : copy.person_name_placeholder)}</h1>
-              {card.position ? <p className="preview-sub">{card.position}</p> : null}
+              <h1>{displayName || (card.type === "store" ? copy.store_name_placeholder : copy.person_name_placeholder)}</h1>
+              {position ? <p className="preview-sub">{position}</p> : null}
               {card.company && card.type === "person" ? <p className="preview-company">{card.company}</p> : null}
             </div>
           </div>

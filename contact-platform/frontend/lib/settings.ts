@@ -11,7 +11,9 @@ export function defaultLandingCard(logoURL = defaultLogo): Card {
     status: "published",
     preferred_language: "ru",
     name: "Айбек Осмонов",
+    name_translations: {},
     position: "AI Operations Consultant",
+    position_translations: {},
     company: "Nexora Group",
     email: "demo@nexora.kg",
     website: "https://nexora.kg",
@@ -65,6 +67,8 @@ export function withSettingsDefaults(settings?: Partial<AppSettings>): AppSettin
       ...defaults.landing_card,
       ...(settings?.landing_card || {}),
       preferred_language: normalizeLanguage(settings?.landing_card?.preferred_language),
+      name_translations: settings?.landing_card?.name_translations || defaults.landing_card.name_translations,
+      position_translations: settings?.landing_card?.position_translations || defaults.landing_card.position_translations,
       design: {
         ...defaults.landing_card.design,
         ...(settings?.landing_card?.design || {}),

@@ -44,19 +44,21 @@ func defaultAppSettings() models.AppSettings {
 		LandingSecondaryHref:    "/register",
 		LandingFeatures:         []string{"Person cards", "Store catalog", "VCF export"},
 		LandingCard: models.Card{
-			Slug:              "demo",
-			Type:              models.CardTypePerson,
-			Status:            models.StatusPublished,
-			PreferredLanguage: models.LanguageRU,
-			Name:              "Айбек Осмонов",
-			Position:          "AI Operations Consultant",
-			Company:           "Nexora Group",
-			Email:             "demo@nexora.kg",
-			Website:           "https://nexora.kg",
-			Address:           "Бишкек",
-			AddressGeoURI:     "geo:42.8746,74.5698",
-			Phones:            []string{"+996 555 123 456"},
-			Socials:           models.Socials{Telegram: "https://t.me/nexora"},
+			Slug:                 "demo",
+			Type:                 models.CardTypePerson,
+			Status:               models.StatusPublished,
+			PreferredLanguage:    models.LanguageRU,
+			Name:                 "Айбек Осмонов",
+			NameTranslations:     models.LocalizedText{},
+			Position:             "AI Operations Consultant",
+			PositionTranslations: models.LocalizedText{},
+			Company:              "Nexora Group",
+			Email:                "demo@nexora.kg",
+			Website:              "https://nexora.kg",
+			Address:              "Бишкек",
+			AddressGeoURI:        "geo:42.8746,74.5698",
+			Phones:               []string{"+996 555 123 456"},
+			Socials:              models.Socials{Telegram: "https://t.me/nexora"},
 			Design: models.DesignConfig{
 				BackgroundType:             "solid",
 				BackgroundValue:            "#edffef",
@@ -419,7 +421,7 @@ func (s *Store) GetPublicCardBySlug(ctx context.Context, slug string) (models.Ca
 }
 
 func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, error) {
-	phones, socials, design, vcfButton, fields := jsonValues(card)
+	phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields := jsonValues(card)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return models.Card{}, err
@@ -428,12 +430,12 @@ func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, 
 
 	err = tx.QueryRow(ctx, `
 		INSERT INTO cards (
-			owner_id, slug, type, status, preferred_language, name, position, company, email, website, address, address_geo_uri,
+			owner_id, slug, type, status, preferred_language, name, name_translations, position, position_translations, company, email, website, address, address_geo_uri,
 			phones, socials, photo_url, logo_url, hide_logo, design_id, design_config, vcf_button, custom_fields
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NULLIF($18,'')::uuid,$19,$20,$21)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,NULLIF($20,'')::uuid,$21,$22,$23)
 		RETURNING id::text, created_at, updated_at, published_at
-	`, card.OwnerID, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), normalizeLanguage(card.PreferredLanguage), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, card.AddressGeoURI, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields).Scan(&card.ID, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt)
+	`, card.OwnerID, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), normalizeLanguage(card.PreferredLanguage), card.Name, nameTranslations, card.Position, positionTranslations, card.Company, card.Email, card.Website, card.Address, card.AddressGeoURI, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields).Scan(&card.ID, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt)
 	if err != nil {
 		return models.Card{}, err
 	}
@@ -447,7 +449,7 @@ func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, 
 }
 
 func (s *Store) UpdateCard(ctx context.Context, id string, card models.Card) (models.Card, error) {
-	phones, socials, design, vcfButton, fields := jsonValues(card)
+	phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields := jsonValues(card)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return models.Card{}, err
@@ -456,12 +458,12 @@ func (s *Store) UpdateCard(ctx context.Context, id string, card models.Card) (mo
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE cards
-		SET slug=$2, type=$3, status=$4, preferred_language=$5, name=$6, position=$7, company=$8, email=$9,
-		    website=$10, address=$11, address_geo_uri=$12, phones=$13, socials=$14, photo_url=$15, logo_url=$16,
-		    hide_logo=$17, design_id=NULLIF($18,'')::uuid, design_config=$19,
-		    vcf_button=$20, custom_fields=$21, updated_at=now()
+		SET slug=$2, type=$3, status=$4, preferred_language=$5, name=$6, name_translations=$7, position=$8,
+		    position_translations=$9, company=$10, email=$11, website=$12, address=$13, address_geo_uri=$14,
+		    phones=$15, socials=$16, photo_url=$17, logo_url=$18, hide_logo=$19,
+		    design_id=NULLIF($20,'')::uuid, design_config=$21, vcf_button=$22, custom_fields=$23, updated_at=now()
 		WHERE id=$1
-	`, id, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), normalizeLanguage(card.PreferredLanguage), card.Name, card.Position, card.Company, card.Email, card.Website, card.Address, card.AddressGeoURI, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields)
+	`, id, card.Slug, card.Type, defaultString(card.Status, models.StatusDraft), normalizeLanguage(card.PreferredLanguage), card.Name, nameTranslations, card.Position, positionTranslations, card.Company, card.Email, card.Website, card.Address, card.AddressGeoURI, phones, socials, card.PhotoURL, card.LogoURL, card.HideLogo, card.DesignID, design, vcfButton, fields)
 	if err != nil {
 		return models.Card{}, err
 	}
@@ -571,7 +573,8 @@ func (s *Store) DeleteDesign(ctx context.Context, id string) error {
 func cardSelect() string {
 	return `
 		SELECT cards.id::text, cards.owner_id::text, cards.slug, cards.type, cards.status,
-		       cards.preferred_language, cards.name, cards.position, cards.company, cards.email, cards.website, cards.address, cards.address_geo_uri,
+		       cards.preferred_language, cards.name, cards.name_translations, cards.position, cards.position_translations,
+		       cards.company, cards.email, cards.website, cards.address, cards.address_geo_uri,
 		       cards.phones, cards.socials, cards.photo_url, cards.logo_url, cards.hide_logo,
 		       COALESCE(cards.design_id::text,''), cards.design_config, cards.vcf_button, cards.custom_fields,
 		       cards.created_at, cards.updated_at, cards.published_at
@@ -582,12 +585,14 @@ func scanCards(rows pgx.Rows) ([]models.Card, error) {
 	cards := []models.Card{}
 	for rows.Next() {
 		var card models.Card
-		var phonesJSON, socialsJSON, designJSON, vcfButtonJSON, fieldsJSON []byte
-		if err := rows.Scan(&card.ID, &card.OwnerID, &card.Slug, &card.Type, &card.Status, &card.PreferredLanguage, &card.Name, &card.Position, &card.Company, &card.Email, &card.Website, &card.Address, &card.AddressGeoURI, &phonesJSON, &socialsJSON, &card.PhotoURL, &card.LogoURL, &card.HideLogo, &card.DesignID, &designJSON, &vcfButtonJSON, &fieldsJSON, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt); err != nil {
+		var phonesJSON, socialsJSON, nameTranslationsJSON, positionTranslationsJSON, designJSON, vcfButtonJSON, fieldsJSON []byte
+		if err := rows.Scan(&card.ID, &card.OwnerID, &card.Slug, &card.Type, &card.Status, &card.PreferredLanguage, &card.Name, &nameTranslationsJSON, &card.Position, &positionTranslationsJSON, &card.Company, &card.Email, &card.Website, &card.Address, &card.AddressGeoURI, &phonesJSON, &socialsJSON, &card.PhotoURL, &card.LogoURL, &card.HideLogo, &card.DesignID, &designJSON, &vcfButtonJSON, &fieldsJSON, &card.CreatedAt, &card.UpdatedAt, &card.PublishedAt); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(phonesJSON, &card.Phones)
 		_ = json.Unmarshal(socialsJSON, &card.Socials)
+		_ = json.Unmarshal(nameTranslationsJSON, &card.NameTranslations)
+		_ = json.Unmarshal(positionTranslationsJSON, &card.PositionTranslations)
 		_ = json.Unmarshal(designJSON, &card.Design)
 		_ = json.Unmarshal(vcfButtonJSON, &card.VCFButton)
 		_ = json.Unmarshal(fieldsJSON, &card.CustomFields)
@@ -600,6 +605,8 @@ func scanCards(rows pgx.Rows) ([]models.Card, error) {
 		card.Design = normalizeDesignConfig(card.Design)
 		card.VCFButton = normalizeVCFButton(card.VCFButton)
 		card.PreferredLanguage = normalizeLanguage(card.PreferredLanguage)
+		card.NameTranslations = normalizeLocalizedText(card.NameTranslations)
+		card.PositionTranslations = normalizeLocalizedText(card.PositionTranslations)
 		cards = append(cards, card)
 	}
 	return cards, rows.Err()
@@ -646,13 +653,15 @@ func replaceProducts(ctx context.Context, tx pgx.Tx, cardID string, products []m
 	return nil
 }
 
-func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte, []byte) {
+func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte, []byte, []byte, []byte) {
 	phones, _ := json.Marshal(card.Phones)
 	socials, _ := json.Marshal(card.Socials)
+	nameTranslations, _ := json.Marshal(normalizeLocalizedText(card.NameTranslations))
+	positionTranslations, _ := json.Marshal(normalizeLocalizedText(card.PositionTranslations))
 	design, _ := json.Marshal(normalizeDesignConfig(card.Design))
 	vcfButton, _ := json.Marshal(normalizeVCFButton(card.VCFButton))
 	fields, _ := json.Marshal(card.CustomFields)
-	return phones, socials, design, vcfButton, fields
+	return phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields
 }
 
 type designScanner interface {
@@ -745,7 +754,9 @@ func normalizeAppSettings(settings models.AppSettings) models.AppSettings {
 	card.Status = models.StatusPublished
 	card.PreferredLanguage = normalizeLanguage(card.PreferredLanguage)
 	card.Name = defaultString(card.Name, defaults.LandingCard.Name)
+	card.NameTranslations = normalizeLocalizedText(card.NameTranslations)
 	card.Position = strings.TrimSpace(card.Position)
+	card.PositionTranslations = normalizeLocalizedText(card.PositionTranslations)
 	card.Company = strings.TrimSpace(card.Company)
 	card.Email = strings.ToLower(strings.TrimSpace(card.Email))
 	card.Website = strings.TrimSpace(card.Website)
@@ -786,6 +797,16 @@ func normalizeLanguage(value string) string {
 	default:
 		return models.LanguageRU
 	}
+}
+
+func normalizeLocalizedText(values models.LocalizedText) models.LocalizedText {
+	out := models.LocalizedText{}
+	for _, language := range []string{models.LanguageRU, models.LanguageEN, models.LanguageKY} {
+		if value := strings.TrimSpace(values[language]); value != "" {
+			out[language] = value
+		}
+	}
+	return out
 }
 
 func normalizeTranslations(values models.TranslationDictionary) models.TranslationDictionary {
