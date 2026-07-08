@@ -499,7 +499,7 @@ legend {
 
 .mesh-toolbar {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
 }
 
@@ -654,7 +654,7 @@ legend {
 
 .is-animated-gradient {
   background-size: 180% 180% !important;
-  animation: cardGradientMove 10s ease-in-out infinite alternate;
+  animation: cardGradientMove var(--gradient-animation-speed, 10s) ease-in-out infinite alternate;
 }
 
 @keyframes cardGradientMove {
@@ -664,22 +664,22 @@ legend {
 
 .mesh-animation-drift {
   background-size: 140% 140% !important;
-  animation: meshDrift 14s ease-in-out infinite alternate;
+  animation: meshDrift var(--mesh-animation-speed, 14s) ease-in-out infinite alternate;
 }
 
 .mesh-animation-pulse {
   background-size: 125% 125% !important;
-  animation: meshPulse 8s ease-in-out infinite;
+  animation: meshPulse var(--mesh-animation-speed, 8s) ease-in-out infinite;
 }
 
 .mesh-animation-orbit {
   background-size: 150% 150% !important;
-  animation: meshOrbit 18s linear infinite;
+  animation: meshOrbit var(--mesh-animation-speed, 18s) linear infinite;
 }
 
 .mesh-animation-breathe {
   background-size: 118% 118% !important;
-  animation: meshBreathe 11s ease-in-out infinite;
+  animation: meshBreathe var(--mesh-animation-speed, 11s) ease-in-out infinite;
 }
 
 @keyframes meshDrift {

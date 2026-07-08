@@ -605,6 +605,7 @@ func normalizeDesign(design models.DesignConfig) models.DesignConfig {
 	if design.CardGradientAngle <= 0 {
 		design.CardGradientAngle = 135
 	}
+	design.CardGradientAnimationSpeed = boundedInt(design.CardGradientAnimationSpeed, 10, 3, 40)
 	design.CardMesh = normalizeMeshGradient(design.CardMesh, design.CardBackgroundValue, design.ButtonColor)
 	design.TextColor = defaultString(design.TextColor, "#030609")
 	design.LogoURL = strings.TrimSpace(design.LogoURL)
@@ -618,6 +619,7 @@ func normalizeDesign(design models.DesignConfig) models.DesignConfig {
 	if design.GradientAngle <= 0 {
 		design.GradientAngle = 135
 	}
+	design.GradientAnimationSpeed = boundedInt(design.GradientAnimationSpeed, 10, 3, 40)
 	design.FontFamily = defaultString(design.FontFamily, "system")
 	if design.FontWeight <= 0 {
 		design.FontWeight = 700
@@ -667,8 +669,9 @@ func clampedFloat(value, minValue, maxValue float64) float64 {
 
 func defaultMeshGradient(primary, secondary string) models.MeshGradientConfig {
 	return models.MeshGradientConfig{
-		Preset:    "nexora",
-		Animation: "none",
+		Preset:         "nexora",
+		Animation:      "none",
+		AnimationSpeed: 10,
 		Points: []models.MeshPoint{
 			{ID: "p1", X: 18, Y: 22, Color: normalizeColor(primary, "#edffef"), Opacity: 0.92, Radius: 48},
 			{ID: "p2", X: 82, Y: 18, Color: normalizeColor(secondary, "#0a844a"), Opacity: 0.58, Radius: 42},
@@ -684,6 +687,7 @@ func normalizeMeshGradient(mesh models.MeshGradientConfig, primary, secondary st
 		mesh.Preset = "custom"
 	}
 	mesh.Animation = normalizeMeshAnimation(mesh.Animation)
+	mesh.AnimationSpeed = boundedInt(mesh.AnimationSpeed, 10, 3, 40)
 	if len(mesh.Points) < 3 {
 		mesh = defaultMeshGradient(primary, secondary)
 	}
@@ -752,6 +756,19 @@ func slugify(value string) string {
 func defaultString(value, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback
+	}
+	return value
+}
+
+func boundedInt(value, fallback, minValue, maxValue int) int {
+	if value <= 0 {
+		value = fallback
+	}
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
 	}
 	return value
 }

@@ -110,7 +110,15 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
   const gradientStageClass = design.background_type === "gradient" && design.gradient_animated ? " is-animated-gradient" : "";
   const gradientCardClass = design.card_background_type === "gradient" && design.card_gradient_animated ? " is-animated-gradient" : "";
   return (
-    <section className={`preview-stage${gradientStageClass}${stageAnimationClass}`} data-layout={design.layout} style={{ background }}>
+    <section
+      className={`preview-stage${gradientStageClass}${stageAnimationClass}`}
+      data-layout={design.layout}
+      style={{
+        background,
+        "--gradient-animation-speed": `${design.gradient_animation_speed || 10}s`,
+        "--mesh-animation-speed": `${design.background_mesh.animation_speed || 10}s`
+      } as CSSProperties & Record<string, string>}
+    >
       <div className="preview-card-stack">
         {design.top_image_url ? <img className="preview-edge-image" src={design.top_image_url} alt="" /> : null}
         <article
@@ -123,7 +131,9 @@ export function CardPreview({ card, vcfHref = "" }: CardPreviewProps) {
             "--card-font-family": fontFamily(design.font_family),
             "--card-font-scale": String(fontScale),
             "--card-font-weight": String(design.font_weight || 700),
-            "--card-logo-min-width": `${logoMinWidth}px`
+            "--card-logo-min-width": `${logoMinWidth}px`,
+            "--gradient-animation-speed": `${design.card_gradient_animation_speed || 10}s`,
+            "--mesh-animation-speed": `${design.card_mesh.animation_speed || 10}s`
           } as CSSProperties & Record<string, string>}
         >
           <div className="preview-card-bg">

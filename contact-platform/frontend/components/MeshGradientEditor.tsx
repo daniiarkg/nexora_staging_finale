@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { PointerEvent } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import type { MeshGradientConfig, MeshPoint } from "@/lib/types";
 import { cloneMesh, meshAnimationPresets, meshGradientToCss, meshPresets, nextMeshPoint, normalizeMeshGradient } from "@/lib/mesh-gradient";
 
@@ -75,12 +75,16 @@ export function MeshGradientEditor({ value, fallback, onChange }: Props) {
             {meshAnimationPresets.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
           </select>
         </label>
+        <label>
+          <span>Speed, sec</span>
+          <input type="number" min="3" max="40" value={mesh.animation_speed || 10} onChange={(event) => commit({ ...mesh, animation_speed: Number(event.target.value) })} />
+        </label>
       </div>
 
       <div
         className={`mesh-canvas${mesh.animation !== "none" ? ` mesh-animation-${mesh.animation}` : ""}`}
         ref={previewRef}
-        style={{ background: meshGradientToCss(mesh, fallback) }}
+        style={{ background: meshGradientToCss(mesh, fallback), "--mesh-animation-speed": `${mesh.animation_speed || 10}s` } as CSSProperties}
         onPointerDown={(event) => {
           if (event.target !== event.currentTarget || !selectedPoint) return;
           movePoint(selectedPoint.id, event);

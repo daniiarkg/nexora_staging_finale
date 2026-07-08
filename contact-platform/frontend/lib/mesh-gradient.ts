@@ -15,6 +15,7 @@ export const meshPresets: { name: string; label: string; mesh: MeshGradientConfi
     mesh: {
       preset: "nexora",
       animation: "drift",
+      animation_speed: 14,
       points: [
         { id: "p1", x: 16, y: 20, color: "#edffef", opacity: 0.95, radius: 50 },
         { id: "p2", x: 84, y: 18, color: "#0a844a", opacity: 0.56, radius: 44 },
@@ -29,6 +30,7 @@ export const meshPresets: { name: string; label: string; mesh: MeshGradientConfi
     mesh: {
       preset: "graphite",
       animation: "breathe",
+      animation_speed: 11,
       points: [
         { id: "p1", x: 18, y: 18, color: "#ffffff", opacity: 0.2, radius: 44 },
         { id: "p2", x: 74, y: 20, color: "#8b949e", opacity: 0.34, radius: 50 },
@@ -43,6 +45,7 @@ export const meshPresets: { name: string; label: string; mesh: MeshGradientConfi
     mesh: {
       preset: "aurora",
       animation: "orbit",
+      animation_speed: 18,
       points: [
         { id: "p1", x: 20, y: 22, color: "#dbeafe", opacity: 0.86, radius: 48 },
         { id: "p2", x: 78, y: 18, color: "#a7f3d0", opacity: 0.72, radius: 46 },
@@ -58,6 +61,7 @@ export const meshPresets: { name: string; label: string; mesh: MeshGradientConfi
     mesh: {
       preset: "ember",
       animation: "pulse",
+      animation_speed: 8,
       points: [
         { id: "p1", x: 16, y: 24, color: "#fff7ed", opacity: 0.86, radius: 44 },
         { id: "p2", x: 72, y: 18, color: "#fb7185", opacity: 0.52, radius: 40 },
@@ -72,6 +76,7 @@ export function cloneMesh(mesh: MeshGradientConfig): MeshGradientConfig {
   return {
     preset: mesh.preset,
     animation: mesh.animation,
+    animation_speed: mesh.animation_speed,
     points: mesh.points.map((point) => ({ ...point }))
   };
 }
@@ -80,6 +85,7 @@ export function defaultMeshGradient(primary = "#edffef", secondary = "#0a844a"):
   return {
     preset: "custom",
     animation: "none",
+    animation_speed: 10,
     points: [
       { id: "p1", x: 18, y: 22, color: primary, opacity: 0.9, radius: 48 },
       { id: "p2", x: 82, y: 18, color: secondary, opacity: 0.56, radius: 42 },
@@ -94,12 +100,14 @@ export function normalizeMeshGradient(mesh?: Partial<MeshGradientConfig>, primar
     ? {
         preset: mesh.preset || "custom",
         animation: normalizeAnimation(mesh.animation),
+        animation_speed: clampNumber(mesh.animation_speed, 3, 40, 10),
         points: mesh.points
       }
     : defaultMeshGradient(primary, secondary);
   return {
     preset: source.preset || "custom",
     animation: normalizeAnimation(source.animation),
+    animation_speed: clampNumber(source.animation_speed, 3, 40, 10),
     points: source.points.slice(0, 6).map((point, index) => ({
       id: point.id || `p${index + 1}`,
       x: clampNumber(point.x, 0, 100, 50),

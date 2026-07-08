@@ -25,6 +25,7 @@ export function BackgroundDesigner({ target, design, onPatch }: Props) {
   const gradientTo = isCard ? design.card_gradient_to : design.gradient_to;
   const gradientAngle = isCard ? design.card_gradient_angle : design.gradient_angle;
   const gradientAnimated = isCard ? design.card_gradient_animated : design.gradient_animated;
+  const gradientSpeed = isCard ? design.card_gradient_animation_speed : design.gradient_animation_speed;
   const mesh = isCard ? design.card_mesh : design.background_mesh;
   const fallback = solid || (isCard ? "#edffef" : "#edffef");
 
@@ -36,6 +37,7 @@ export function BackgroundDesigner({ target, design, onPatch }: Props) {
         card_color: solid || design.card_color || "#edffef",
         card_gradient_from: gradientFrom || solid || "#edffef",
         card_gradient_to: gradientTo || design.button_color || "#0a844a",
+        card_gradient_animation_speed: gradientSpeed || 10,
         card_mesh: mesh?.points?.length ? mesh : defaultMeshGradient(solid || "#edffef", design.button_color || "#0a844a")
       });
       return;
@@ -44,6 +46,7 @@ export function BackgroundDesigner({ target, design, onPatch }: Props) {
       background_type: nextType,
       gradient_from: gradientFrom || solid || "#edffef",
       gradient_to: gradientTo || design.button_color || "#0a844a",
+      gradient_animation_speed: gradientSpeed || 10,
       background_mesh: mesh?.points?.length ? mesh : defaultMeshGradient(solid || "#edffef", design.button_color || "#0a844a")
     });
   }
@@ -88,6 +91,8 @@ export function BackgroundDesigner({ target, design, onPatch }: Props) {
           <label><span>Цвет 2</span><input type="color" value={gradientTo || design.button_color || "#0a844a"} onChange={(event) => onPatch(isCard ? { card_gradient_to: event.target.value } : { gradient_to: event.target.value })} /></label>
           <label><span>Угол</span><input type="number" min="0" max="360" value={gradientAngle || 135} onChange={(event) => onPatch(isCard ? { card_gradient_angle: Number(event.target.value) } : { gradient_angle: Number(event.target.value) })} /></label>
           <label className="checkbox"><input type="checkbox" checked={Boolean(gradientAnimated)} onChange={(event) => onPatch(isCard ? { card_gradient_animated: event.target.checked } : { gradient_animated: event.target.checked })} /> Анимировать градиент</label>
+          <label><span>Скорость, сек</span><input type="number" min="3" max="40" value={gradientSpeed || 10} onChange={(event) => onPatch(isCard ? { card_gradient_animation_speed: Number(event.target.value) } : { gradient_animation_speed: Number(event.target.value) })} /></label>
+          <label><span>Скорость {gradientSpeed || 10} сек</span><input type="range" min="3" max="40" value={gradientSpeed || 10} onChange={(event) => onPatch(isCard ? { card_gradient_animation_speed: Number(event.target.value) } : { gradient_animation_speed: Number(event.target.value) })} /></label>
         </div>
       ) : null}
 

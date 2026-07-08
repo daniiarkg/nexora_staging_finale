@@ -37,6 +37,7 @@ export type MeshPoint = {
 export type MeshGradientConfig = {
   preset: string;
   animation: MeshAnimationPreset;
+  animation_speed: number;
   points: MeshPoint[];
 };
 
@@ -51,6 +52,7 @@ export type DesignConfig = {
   card_gradient_to: string;
   card_gradient_angle: number;
   card_gradient_animated: boolean;
+  card_gradient_animation_speed: number;
   card_mesh: MeshGradientConfig;
   button_color: string;
   text_color: string;
@@ -62,6 +64,7 @@ export type DesignConfig = {
   gradient_to: string;
   gradient_angle: number;
   gradient_animated: boolean;
+  gradient_animation_speed: number;
   font_family: "system" | "serif" | "mono" | "rounded";
   font_weight: number;
   font_size: number;

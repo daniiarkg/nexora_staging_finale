@@ -1,0 +1,3 @@
+ALTER TABLE designs
+  ADD COLUMN IF NOT EXISTS gradient_animation_speed INTEGER NOT NULL DEFAULT 10,
+  ADD COLUMN IF NOT EXISTS card_gradient_animation_speed INTEGER NOT NULL DEFAULT 10;
