@@ -605,7 +605,8 @@ export function AdminClient() {
             </div>
             <div className="cms-field-grid two">
               <TextField label="Название" value={selectedCourse.title} onChange={(title) => updateCourse((course) => { course.title = title; })} />
-              <AssetField label="Картинка курса" value={selectedCourse.image} uploadFile={uploadAsset} onChange={(image) => updateCourse((course) => { course.image = image; })} />
+              <AssetField label="Картинка курса (ПК)" value={selectedCourse.imageDesktop || selectedCourse.image} uploadFile={uploadAsset} onChange={(imageDesktop) => updateCourse((course) => { course.imageDesktop = imageDesktop; course.image = imageDesktop; })} />
+              <AssetField label="Картинка курса (мобилка)" value={selectedCourse.imageMobile || selectedCourse.imageDesktop || selectedCourse.image} uploadFile={uploadAsset} onChange={(imageMobile) => updateCourse((course) => { course.imageMobile = imageMobile; })} />
             </div>
             <TextField label="Описание в карточке" value={selectedCourse.description} multiline rows={4} onChange={(description) => updateCourse((course) => { course.description = description; })} />
             <TextField label="Описание на странице курса" value={selectedCourse.detailText} multiline rows={5} onChange={(detailText) => updateCourse((course) => { course.detailText = detailText; })} />

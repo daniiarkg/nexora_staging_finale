@@ -115,7 +115,18 @@ function normalizeContent(content: SiteContent): SiteContent {
       ...content.settings,
       ui: { ...DEFAULT_UI_LABELS, ...(content.settings.ui || {}) },
       form: { ...DEFAULT_LEAD_FORM_TEXT, ...(content.settings.form || {}) }
-    }
+    },
+    courses: content.courses.map((course) => {
+      const imageDesktop = course.imageDesktop || course.image;
+      const imageMobile = course.imageMobile || (imageDesktop.startsWith("/assets/course-") && imageDesktop.endsWith(".svg") ? imageDesktop.replace(".svg", "-mobile.svg") : imageDesktop);
+
+      return {
+        ...course,
+        image: course.image || imageDesktop,
+        imageDesktop,
+        imageMobile
+      };
+    })
   };
 }
 

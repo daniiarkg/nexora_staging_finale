@@ -57,6 +57,8 @@ export type CourseContent = {
   slug: string;
   title: string;
   image: string;
+  imageDesktop?: string;
+  imageMobile?: string;
   description: string;
   bullets: string[];
   detailText: string;

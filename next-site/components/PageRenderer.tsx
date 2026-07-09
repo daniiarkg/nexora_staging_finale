@@ -195,7 +195,10 @@ function CoursesGrid({ courses, settings }: { courses: CourseContent[]; settings
     <div className="course-grid">
       {courses.map((course) => (
         <article className="course-card reveal" key={course.slug}>
-          <img src={course.image} alt={`Обложка курса ${course.title}`} />
+          <picture className="course-card-media">
+            <source media="(max-width: 760px)" srcSet={course.imageMobile || course.imageDesktop || course.image} />
+            <img src={course.imageDesktop || course.image} alt={`Обложка курса ${course.title}`} />
+          </picture>
           <div>
             <h3>{course.title}</h3>
             <p>{course.description}</p>
