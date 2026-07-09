@@ -105,7 +105,7 @@ function TimelineSection({ section }: { section: PageSection }) {
 
 function BenefitsSection({ section }: { section: PageSection }) {
   return (
-    <section className="section-shell split-section">
+    <section className="section-shell split-section benefits-section">
       <div className="split-copy reveal">
         <p className="eyebrow">{section.eyebrow}</p>
         <h2>{section.title}</h2>

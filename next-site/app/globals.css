@@ -452,6 +452,18 @@ h2 {
   background: linear-gradient(135deg, rgba(160, 217, 165, 0.12), rgba(255, 255, 255, 0.04));
 }
 
+.theme-courses .benefits-section .benefit-grid article {
+  border-color: rgba(232, 255, 233, 0.16);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.095), rgba(160, 217, 165, 0.055)),
+    rgba(255, 255, 255, 0.045);
+}
+
+.theme-courses .benefits-section .benefit-grid b {
+  background: rgba(160, 217, 165, 0.14);
+  color: #9cf0ad;
+}
+
 .theme-courses .price {
   background: #ffffff;
   color: #030609;
@@ -586,6 +598,48 @@ h2 {
   align-items: start;
 }
 
+.benefits-section {
+  grid-template-columns: minmax(300px, 0.62fr) minmax(0, 1.38fr);
+  align-items: stretch;
+}
+
+.benefits-section .split-copy {
+  align-self: center;
+  max-width: 560px;
+}
+
+.benefits-section .benefit-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+.benefits-section .benefit-grid article {
+  min-height: 300px;
+  padding: 28px;
+  justify-content: space-between;
+}
+
+.benefits-section .benefit-grid article:hover {
+  border-color: rgba(10, 132, 74, 0.42);
+  transform: translateY(-4px);
+}
+
+.benefits-section .benefit-grid b {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 132, 74, 0.1);
+  letter-spacing: 0;
+  font-size: 14px;
+}
+
+.benefits-section .benefit-grid h3 {
+  margin-top: auto;
+  font-size: clamp(24px, 2.1vw, 30px);
+}
+
 .timeline {
   display: grid;
   gap: 14px;
@@ -641,6 +695,7 @@ h2 {
   border-radius: var(--radius);
   display: grid;
   grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1fr);
+  align-items: center;
   gap: 24px;
   padding: 18px;
   background: rgba(255, 255, 255, 0.9);
@@ -649,10 +704,12 @@ h2 {
 
 .course-card-media {
   width: 100%;
+  aspect-ratio: 640 / 420;
   min-height: 270px;
   border-radius: var(--radius);
   display: grid;
   place-items: center;
+  align-self: center;
   overflow: hidden;
   background: linear-gradient(135deg, rgba(232, 255, 233, 0.9), rgba(255, 255, 255, 0.74));
 }
@@ -996,6 +1053,10 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .benefits-section .split-copy {
+    max-width: 760px;
+  }
+
   .theme-courses .nav-links {
     border-color: rgba(232, 255, 233, 0.16);
     background: rgba(3, 6, 9, 0.96);
@@ -1076,6 +1137,15 @@ h2 {
   .benefit-grid,
   .metric-band {
     grid-template-columns: 1fr;
+  }
+
+  .benefits-section .benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .benefits-section .benefit-grid article {
+    min-height: 220px;
+    padding: 24px;
   }
 
   .course-card {
