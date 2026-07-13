@@ -73,6 +73,15 @@ button.compact, .button.compact {
   font-size: 13px;
 }
 
+.compact-select {
+  width: auto;
+  min-width: 132px;
+  min-height: 34px;
+  padding: 0 34px 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 button:disabled {
   opacity: .55;
   cursor: not-allowed;

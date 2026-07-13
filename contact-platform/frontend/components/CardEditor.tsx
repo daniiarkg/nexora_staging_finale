@@ -252,7 +252,7 @@ export function CardEditor({ initial }: Props) {
             <h1>{card.id ? "Редактирование" : "Создание карточки"}</h1>
           </div>
           <div className="toolbar-actions">
-            <button onClick={() => save("draft")} disabled={saving}>Сохранить</button>
+            <button onClick={() => save()} disabled={saving}>Сохранить</button>
             <button onClick={() => save("published")} disabled={saving}>Опубликовать</button>
           </div>
         </div>
@@ -261,6 +261,7 @@ export function CardEditor({ initial }: Props) {
         <fieldset>
           <legend>Тип и основные данные</legend>
           <label><span>Тип</span><select value={card.type} onChange={(e) => patch({ type: e.target.value as Card["type"] })}><option value="person">Контакт</option><option value="store">Магазин</option></select></label>
+          <label><span>Статус</span><select value={card.status} onChange={(e) => patch({ status: e.target.value as Card["status"] })}><option value="draft">Черновик</option><option value="published">Опубликовано</option></select></label>
           <label><span>Основной язык карточки</span><select value={card.preferred_language} onChange={(e) => patch({ preferred_language: e.target.value as Card["preferred_language"] })}>{languages.map((language) => <option value={language.code} key={language.code}>{language.label}</option>)}</select></label>
           <label><span>{card.type === "store" ? "Название магазина" : "ФИО"}</span><input value={card.name} onChange={(e) => patch({ name: e.target.value })} />{fieldError("name")}</label>
           <label><span>{card.type === "store" ? "Описание" : "Должность"}</span><input value={card.position} onChange={(e) => patch({ position: e.target.value })} />{fieldError("position")}</label>

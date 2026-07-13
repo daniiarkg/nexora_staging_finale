@@ -358,6 +358,7 @@ func (a *app) handleCardRoute(w http.ResponseWriter, r *http.Request) {
 func (a *app) handlePublicRoute(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/public/cards/")
 	if strings.HasSuffix(path, "/vcf") {
+		noStore(w)
 		slug := strings.TrimSuffix(path, "/vcf")
 		card, err := a.store.GetPublicCardBySlug(r.Context(), slug)
 		if err != nil {
@@ -374,6 +375,7 @@ func (a *app) handlePublicRoute(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusMethodNotAllowed, "method_not_allowed")
 		return
 	}
+	noStore(w)
 	card, err := a.store.GetPublicCardBySlug(r.Context(), strings.Trim(path, "/"))
 	respondStore(w, card, err)
 }
@@ -664,6 +666,12 @@ func respondErr(w http.ResponseWriter, err error) {
 		return
 	}
 	httpx.Error(w, http.StatusInternalServerError, "server_error")
+}
+
+func noStore(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 }
 
 func allowedUpload(kind, filename string, data []byte) (string, bool) {

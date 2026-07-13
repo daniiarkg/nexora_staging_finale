@@ -131,6 +131,9 @@ export type Card = {
   vcf_button: VCFButton;
   custom_fields: CustomField[];
   products: Product[];
+  created_at?: string;
+  updated_at?: string;
+  published_at?: string;
 };
 
 export type Design = DesignConfig & {

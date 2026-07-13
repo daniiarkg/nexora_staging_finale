@@ -37,13 +37,32 @@ func TestVCFIncludesCompanyPhonesWebsiteAndAddress(t *testing.T) {
 		},
 	}
 	body := vcf.Render(card, "https://contact.nexora.kg/cards/test")
-	for _, expected := range []string{"ORG:Acme", "TITLE:CEO", "TEL;TYPE=CELL,VOICE:+996 555 123 456", "URL;TYPE=WORK:https://example.com", "ADR;TYPE=WORK:;;Bishkek;;;;", "URL;TYPE=INSTAGRAM:https://instagram.com/acme", "URL;TYPE=WHATSAPP:https://wa.me/996555123456", "URL;TYPE=TELEGRAM:https://t.me/acme"} {
+	for _, expected := range []string{"FN:Test Person", "N:Test Person;;;;", "ORG:Acme", "TITLE:CEO\\, Acme", "TEL;TYPE=CELL,VOICE:+996 555 123 456", "URL;TYPE=WORK:https://example.com", "ADR;TYPE=WORK:;;Bishkek;;;;", "URL;TYPE=INSTAGRAM:https://instagram.com/acme", "URL;TYPE=WHATSAPP:https://wa.me/996555123456", "URL;TYPE=TELEGRAM:https://t.me/acme"} {
 		if !contains(body, expected) {
 			t.Fatalf("expected %q in vcf:\n%s", expected, body)
 		}
 	}
 	if contains(body, "URL:https://contact.nexora.kg/cards/test") {
 		t.Fatalf("card public URL must not be included in vcf:\n%s", body)
+	}
+}
+
+func TestVCFOmitsDefaultCompanyForPersonWithoutCompany(t *testing.T) {
+	card := models.Card{
+		Name:     "No Company",
+		Position: "Designer",
+		Phones:   []string{"+996 555 123 456"},
+	}
+	body := vcf.Render(card, "https://contact.nexora.kg/cards/no-company")
+	for _, unexpected := range []string{"ORG:Nexora Group", "ORG:", "URL:https://contact.nexora.kg/cards/no-company"} {
+		if contains(body, unexpected) {
+			t.Fatalf("did not expect %q in vcf:\n%s", unexpected, body)
+		}
+	}
+	for _, expected := range []string{"FN:No Company", "N:No Company;;;;", "TITLE:Designer"} {
+		if !contains(body, expected) {
+			t.Fatalf("expected %q in vcf:\n%s", expected, body)
+		}
 	}
 }
 

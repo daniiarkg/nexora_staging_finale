@@ -8,14 +8,18 @@ import (
 )
 
 func Render(card models.Card, _ string) string {
+	name := strings.TrimSpace(card.Name)
 	lines := []string{
 		"BEGIN:VCARD",
 		"VERSION:3.0",
-		"FN:" + esc(card.Name),
-		"ORG:" + esc(org(card)),
+		"FN:" + esc(name),
+		"N:" + esc(name) + ";;;;",
 	}
-	if card.Position != "" {
-		lines = append(lines, "TITLE:"+esc(card.Position))
+	if company := org(card); company != "" {
+		lines = append(lines, "ORG:"+esc(company))
+	}
+	if title := jobTitle(card); title != "" {
+		lines = append(lines, "TITLE:"+esc(title))
 	}
 	for _, phone := range card.Phones {
 		if strings.TrimSpace(phone) != "" {
@@ -72,13 +76,22 @@ func socialLinks(socials models.Socials) []struct {
 }
 
 func org(card models.Card) string {
-	if card.Company != "" {
-		return card.Company
+	if company := strings.TrimSpace(card.Company); company != "" {
+		return company
 	}
 	if card.Type == models.CardTypeStore {
-		return card.Name
+		return strings.TrimSpace(card.Name)
 	}
-	return "Nexora Group"
+	return ""
+}
+
+func jobTitle(card models.Card) string {
+	position := strings.TrimSpace(card.Position)
+	company := strings.TrimSpace(card.Company)
+	if position != "" && company != "" {
+		return position + ", " + company
+	}
+	return position
 }
 
 func esc(value string) string {
