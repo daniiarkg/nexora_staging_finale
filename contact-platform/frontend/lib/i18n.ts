@@ -19,7 +19,8 @@ export const translationFields: { key: TranslationKey; label: string }[] = [
   { key: "vcf_save_label", label: "Кнопка VCF по умолчанию" },
   { key: "person_name_placeholder", label: "Плейсхолдер имени" },
   { key: "store_name_placeholder", label: "Плейсхолдер магазина" },
-  { key: "product_placeholder", label: "Плейсхолдер товара" }
+  { key: "product_placeholder", label: "Плейсхолдер товара" },
+  { key: "nexora_footer_description", label: "Описание Nexora внизу карточки" }
 ];
 
 export const defaultTranslations: TranslationDictionary = {
@@ -36,7 +37,8 @@ export const defaultTranslations: TranslationDictionary = {
     vcf_save_label: "Сохранить контакт",
     person_name_placeholder: "Имя Фамилия",
     store_name_placeholder: "Название магазина",
-    product_placeholder: "Товар"
+    product_placeholder: "Товар",
+    nexora_footer_description: "AI-образование, автоматизация, цифровые контактные карты и генерация документов."
   },
   en: {
     language_menu_label: "Choose language",
@@ -51,7 +53,8 @@ export const defaultTranslations: TranslationDictionary = {
     vcf_save_label: "Save contact",
     person_name_placeholder: "Full name",
     store_name_placeholder: "Store name",
-    product_placeholder: "Product"
+    product_placeholder: "Product",
+    nexora_footer_description: "AI education, automation, digital contact cards, and document generation."
   },
   ky: {
     language_menu_label: "Тилди тандоо",
@@ -66,7 +69,8 @@ export const defaultTranslations: TranslationDictionary = {
     vcf_save_label: "Байланышты сактоо",
     person_name_placeholder: "Аты-жөнү",
     store_name_placeholder: "Дүкөндүн аталышы",
-    product_placeholder: "Товар"
+    product_placeholder: "Товар",
+    nexora_footer_description: "AI боюнча билим берүү, автоматташтыруу, санарип байланыш карталары жана документтерди түзүү."
   }
 };
 

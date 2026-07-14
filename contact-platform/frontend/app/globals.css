@@ -1008,6 +1008,39 @@ legend {
   pointer-events: auto;
 }
 
+.preview-nexora-footer {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.preview-nexora-footer strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.preview-nexora-footer p {
+  max-width: 38ch;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: .68;
+}
+
+.preview-nexora-footer a {
+  width: fit-content;
+  color: currentColor;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 .download-icon {
   width: 18px;
   height: 18px;

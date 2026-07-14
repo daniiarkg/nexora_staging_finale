@@ -268,6 +268,13 @@ export function CardPreview({ card, vcfHref = "", translations }: CardPreviewPro
             </a>
           ) : null}
           {design.bottom_image_url ? <img className="preview-edge-image preview-edge-image-bottom" src={design.bottom_image_url} alt="" /> : null}
+          {design.layout === "nexora_default" ? (
+            <footer className="preview-nexora-footer">
+              <strong>Nexora Group</strong>
+              <p>{copy.nexora_footer_description}</p>
+              <a href="https://nexora.kg" target="_blank" rel="noreferrer">nexora.kg</a>
+            </footer>
+          ) : null}
         </article>
       </div>
     </section>

@@ -24,7 +24,7 @@ export function defaultLandingCard(logoURL = defaultLogo): Card {
     photo_url: "",
     logo_url: "",
     hide_logo: false,
-    design: { ...defaultDesign, logo_url: logoURL, logo_min_width: 250 },
+    design: { ...defaultDesign, logo_url: logoURL, logo_min_width: 250, layout: "nexora_default" },
     vcf_button: { enabled: true, label: "Сохранить контакт" },
     custom_fields: [{ label: "Office", value: "Mon-Fri, 10:00-18:00", type: "text" }],
     products: []

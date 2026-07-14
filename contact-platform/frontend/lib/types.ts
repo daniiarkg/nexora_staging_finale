@@ -15,7 +15,8 @@ export type TranslationKey =
   | "vcf_save_label"
   | "person_name_placeholder"
   | "store_name_placeholder"
-  | "product_placeholder";
+  | "product_placeholder"
+  | "nexora_footer_description";
 
 export type TranslationCopy = Record<TranslationKey, string>;
 

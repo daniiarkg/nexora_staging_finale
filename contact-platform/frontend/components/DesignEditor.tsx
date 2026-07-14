@@ -57,7 +57,7 @@ export function DesignEditor({ initial }: { initial?: Design }) {
     setSaving(true);
     setError("");
     try {
-      const payload = { ...design, layout: "custom" };
+      const payload = { ...design, layout: design.layout || "custom" };
       const result = design.id
         ? await apiFetch<{ design: Design }>(`/api/designs/${design.id}`, { method: "PATCH", body: JSON.stringify(payload) })
         : await apiFetch<{ design: Design }>("/api/designs", { method: "POST", body: JSON.stringify(payload) });
