@@ -1011,34 +1011,34 @@ legend {
 .preview-nexora-footer {
   position: relative;
   display: grid;
-  gap: 8px;
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 2px solid color-mix(in srgb, currentColor 28%, transparent);
 }
 
 .preview-nexora-footer strong {
-  font-size: 13px;
-  line-height: 1.2;
+  font-size: calc(17px * var(--card-font-scale, 1));
+  line-height: 1.25;
 }
 
 .preview-nexora-footer p {
-  max-width: 38ch;
+  max-width: 42ch;
   margin: 0;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  opacity: .68;
+  font-size: calc(14px * var(--card-font-scale, 1));
+  font-weight: 600;
+  line-height: 1.55;
+  opacity: .84;
 }
 
 .preview-nexora-footer a {
   width: fit-content;
   color: currentColor;
-  font-size: 13px;
+  font-size: calc(15px * var(--card-font-scale, 1));
   font-weight: 800;
   text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }
 
 .download-icon {
