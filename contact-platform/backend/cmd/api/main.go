@@ -489,6 +489,7 @@ func (a *app) readCard(w http.ResponseWriter, r *http.Request) (models.Card, boo
 	card.Socials = normalizeSocials(card.Socials)
 	card.Address = strings.TrimSpace(card.Address)
 	card.AddressGeoURI = geo.NormalizeURI(card.AddressGeoURI)
+	card.DesignID = strings.TrimSpace(card.DesignID)
 	if card.AddressGeoURI == "" {
 		card.AddressGeoURI = geo.NormalizeURI(card.Address)
 	}

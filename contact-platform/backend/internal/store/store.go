@@ -424,12 +424,16 @@ func (s *Store) GetPublicCardBySlug(ctx context.Context, slug string) (models.Ca
 }
 
 func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, error) {
-	phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields := jsonValues(card)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return models.Card{}, err
 	}
 	defer tx.Rollback(ctx)
+	cardDesign, err := resolveCardDesign(ctx, tx, card)
+	if err != nil {
+		return models.Card{}, err
+	}
+	phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields := jsonValues(card, cardDesign)
 
 	err = tx.QueryRow(ctx, `
 		INSERT INTO cards (
@@ -452,12 +456,16 @@ func (s *Store) CreateCard(ctx context.Context, card models.Card) (models.Card, 
 }
 
 func (s *Store) UpdateCard(ctx context.Context, id string, card models.Card) (models.Card, error) {
-	phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields := jsonValues(card)
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return models.Card{}, err
 	}
 	defer tx.Rollback(ctx)
+	cardDesign, err := resolveCardDesign(ctx, tx, card)
+	if err != nil {
+		return models.Card{}, err
+	}
+	phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields := jsonValues(card, cardDesign)
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE cards
@@ -545,7 +553,12 @@ func (s *Store) UpdateDesign(ctx context.Context, id string, design models.Desig
 	design = normalizeDesignRecord(design)
 	backgroundMesh, _ := json.Marshal(design.BackgroundMesh)
 	cardMesh, _ := json.Marshal(design.CardMesh)
-	out, err := scanDesign(s.db.QueryRow(ctx, `
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return models.Design{}, err
+	}
+	defer tx.Rollback(ctx)
+	out, err := scanDesign(tx.QueryRow(ctx, `
 		UPDATE designs
 		SET name=$2, background_type=$3, background_value=$4, background_mesh=$5,
 		    card_background_type=$6, card_background_value=$7, card_color=$8,
@@ -559,7 +572,31 @@ func (s *Store) UpdateDesign(ctx context.Context, id string, design models.Desig
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, ErrNotFound
 	}
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	designJSON, _ := json.Marshal(designConfigFromRecord(out))
+	if _, err := tx.Exec(ctx, `
+		UPDATE cards
+		SET design_config=$2, updated_at=now()
+		WHERE design_id=$1
+	`, id, designJSON); err != nil {
+		return out, err
+	}
+	if out.Layout == "nexora_default" {
+		if _, err := tx.Exec(ctx, `
+			UPDATE app_settings
+			SET value=jsonb_set(value::jsonb, '{design}', $1::jsonb, true)::text,
+			    updated_at=now()
+			WHERE key='landing_card' AND value <> ''
+		`, string(designJSON)); err != nil {
+			return out, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return out, err
+	}
+	return out, nil
 }
 
 func (s *Store) DeleteDesign(ctx context.Context, id string) error {
@@ -579,9 +616,12 @@ func cardSelect() string {
 		       cards.preferred_language, cards.name, cards.name_translations, cards.position, cards.position_translations,
 		       cards.company, cards.email, cards.website, cards.address, cards.address_geo_uri,
 		       cards.phones, cards.socials, cards.photo_url, cards.logo_url, cards.hide_logo,
-		       COALESCE(cards.design_id::text,''), cards.design_config, cards.vcf_button, cards.custom_fields,
+		       COALESCE(cards.design_id::text,''),
+		       COALESCE(to_jsonb(designs) - ARRAY['id','owner_id','name','created_at','updated_at'], cards.design_config),
+		       cards.vcf_button, cards.custom_fields,
 		       cards.created_at, cards.updated_at, cards.published_at
-		FROM cards`
+		FROM cards
+		LEFT JOIN designs ON designs.id=cards.design_id`
 }
 
 func scanCards(rows pgx.Rows) ([]models.Card, error) {
@@ -657,15 +697,29 @@ func replaceProducts(ctx context.Context, tx pgx.Tx, cardID string, products []m
 	return nil
 }
 
-func jsonValues(card models.Card) ([]byte, []byte, []byte, []byte, []byte, []byte, []byte) {
+func jsonValues(card models.Card, cardDesign models.DesignConfig) ([]byte, []byte, []byte, []byte, []byte, []byte, []byte) {
 	phones, _ := json.Marshal(card.Phones)
 	socials, _ := json.Marshal(normalizeSocials(card.Socials))
 	nameTranslations, _ := json.Marshal(normalizeLocalizedText(card.NameTranslations))
 	positionTranslations, _ := json.Marshal(normalizeLocalizedText(card.PositionTranslations))
-	design, _ := json.Marshal(normalizeDesignConfig(card.Design))
+	design, _ := json.Marshal(cardDesign)
 	vcfButton, _ := json.Marshal(normalizeVCFButton(card.VCFButton))
 	fields, _ := json.Marshal(card.CustomFields)
 	return phones, socials, nameTranslations, positionTranslations, design, vcfButton, fields
+}
+
+func resolveCardDesign(ctx context.Context, tx pgx.Tx, card models.Card) (models.DesignConfig, error) {
+	if strings.TrimSpace(card.DesignID) == "" {
+		return normalizeDesignConfig(card.Design), nil
+	}
+	design, err := scanDesign(tx.QueryRow(ctx, `SELECT `+designSelectColumns+` FROM designs WHERE id=$1`, card.DesignID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.DesignConfig{}, ErrNotFound
+	}
+	if err != nil {
+		return models.DesignConfig{}, err
+	}
+	return designConfigFromRecord(design), nil
 }
 
 type designScanner interface {
@@ -1028,36 +1082,7 @@ func normalizeDesignConfig(design models.DesignConfig) models.DesignConfig {
 }
 
 func normalizeDesignRecord(design models.Design) models.Design {
-	config := normalizeDesignConfig(models.DesignConfig{
-		BackgroundType:             design.BackgroundType,
-		BackgroundValue:            design.BackgroundValue,
-		BackgroundMesh:             design.BackgroundMesh,
-		CardBackgroundType:         design.CardBackgroundType,
-		CardBackgroundValue:        design.CardBackgroundValue,
-		CardColor:                  design.CardColor,
-		CardGradientFrom:           design.CardGradientFrom,
-		CardGradientTo:             design.CardGradientTo,
-		CardGradientAngle:          design.CardGradientAngle,
-		CardGradientAnimated:       design.CardGradientAnimated,
-		CardGradientAnimationSpeed: design.CardGradientAnimationSpeed,
-		CardMesh:                   design.CardMesh,
-		ButtonColor:                design.ButtonColor,
-		TextColor:                  design.TextColor,
-		LogoURL:                    design.LogoURL,
-		LogoMinWidth:               design.LogoMinWidth,
-		TopImageURL:                design.TopImageURL,
-		BottomImageURL:             design.BottomImageURL,
-		GradientFrom:               design.GradientFrom,
-		GradientTo:                 design.GradientTo,
-		GradientAngle:              design.GradientAngle,
-		GradientAnimated:           design.GradientAnimated,
-		GradientAnimationSpeed:     design.GradientAnimationSpeed,
-		FontFamily:                 design.FontFamily,
-		FontWeight:                 design.FontWeight,
-		FontSize:                   design.FontSize,
-		Layout:                     design.Layout,
-		Watermark:                  design.Watermark,
-	})
+	config := designConfigFromRecord(design)
 	design.Name = strings.TrimSpace(design.Name)
 	design.BackgroundType = config.BackgroundType
 	design.BackgroundValue = config.BackgroundValue
@@ -1088,6 +1113,39 @@ func normalizeDesignRecord(design models.Design) models.Design {
 	design.Layout = config.Layout
 	design.Watermark = config.Watermark
 	return design
+}
+
+func designConfigFromRecord(design models.Design) models.DesignConfig {
+	return normalizeDesignConfig(models.DesignConfig{
+		BackgroundType:             design.BackgroundType,
+		BackgroundValue:            design.BackgroundValue,
+		BackgroundMesh:             design.BackgroundMesh,
+		CardBackgroundType:         design.CardBackgroundType,
+		CardBackgroundValue:        design.CardBackgroundValue,
+		CardColor:                  design.CardColor,
+		CardGradientFrom:           design.CardGradientFrom,
+		CardGradientTo:             design.CardGradientTo,
+		CardGradientAngle:          design.CardGradientAngle,
+		CardGradientAnimated:       design.CardGradientAnimated,
+		CardGradientAnimationSpeed: design.CardGradientAnimationSpeed,
+		CardMesh:                   design.CardMesh,
+		ButtonColor:                design.ButtonColor,
+		TextColor:                  design.TextColor,
+		LogoURL:                    design.LogoURL,
+		LogoMinWidth:               design.LogoMinWidth,
+		TopImageURL:                design.TopImageURL,
+		BottomImageURL:             design.BottomImageURL,
+		GradientFrom:               design.GradientFrom,
+		GradientTo:                 design.GradientTo,
+		GradientAngle:              design.GradientAngle,
+		GradientAnimated:           design.GradientAnimated,
+		GradientAnimationSpeed:     design.GradientAnimationSpeed,
+		FontFamily:                 design.FontFamily,
+		FontWeight:                 design.FontWeight,
+		FontSize:                   design.FontSize,
+		Layout:                     design.Layout,
+		Watermark:                  design.Watermark,
+	})
 }
 
 func normalizeVCFButton(button models.VCFButton) models.VCFButton {
