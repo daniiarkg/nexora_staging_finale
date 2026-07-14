@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Globe } from "lucide-react";
 import type { Card, LanguageCode, TranslationDictionary, TranslationCopy } from "@/lib/types";
 import { defaultDesign } from "@/lib/design-presets";
 import { copyForLanguage, languages, normalizeLanguage, normalizeTranslations, vcfLabelFor } from "@/lib/i18n";
@@ -272,7 +273,10 @@ export function CardPreview({ card, vcfHref = "", translations }: CardPreviewPro
             <footer className="preview-nexora-footer">
               <strong>Nexora Group</strong>
               <p>{copy.nexora_footer_description}</p>
-              <a href="https://nexora.kg" target="_blank" rel="noreferrer">nexora.kg</a>
+              <a href="https://nexora.kg" target="_blank" rel="noreferrer">
+                <Globe aria-hidden="true" size={18} strokeWidth={2.2} />
+                <span>nexora.kg</span>
+              </a>
             </footer>
           ) : null}
         </article>

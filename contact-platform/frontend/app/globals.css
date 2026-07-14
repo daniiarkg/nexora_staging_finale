@@ -1033,12 +1033,38 @@ legend {
 
 .preview-nexora-footer a {
   width: fit-content;
-  color: currentColor;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 2px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--button-color) 82%, #000);
+  border-radius: 8px;
+  background: var(--button-color);
+  color: #fff;
   font-size: calc(15px * var(--card-font-scale, 1));
   font-weight: 800;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--button-color) 24%, transparent);
+  transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+}
+
+.preview-nexora-footer a:hover {
+  filter: brightness(.92);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--button-color) 30%, transparent);
+}
+
+.preview-nexora-footer a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--button-color) 35%, #fff);
+  outline-offset: 3px;
+}
+
+.preview-nexora-footer a svg {
+  flex: 0 0 auto;
 }
 
 .download-icon {
